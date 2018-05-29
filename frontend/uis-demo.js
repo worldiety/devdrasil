@@ -3,10 +3,14 @@ import {Box, RaisedButton, TextField, UserInterfaceState} from "/wwt/components.
 
 class UISDemo extends UserInterfaceState {
 
+    constructor(app){
+        super(app);
+    }
+
     apply() {
         this.counter = 0;
 
-        this.setTitle("kitchen sink")
+        this.setTitle(this.getString("uis_login_title"))
 
         let box = new Box()
         let firstname = new TextField();

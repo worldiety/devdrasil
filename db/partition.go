@@ -36,6 +36,17 @@ func (p *Partition) Get(key string, obj interface{}) error {
 	return Read(fname, obj)
 }
 
+func (p *Partition) Has(key string) bool {
+	p.mutex.Lock()
+	defer p.mutex.Unlock()
+
+	fname := p.parent.fanout(p.name, key)
+	if _, err := os.Stat(fname); err != nil {
+		return false
+	}
+	return true
+}
+
 func (p *Partition) Delete(key string) error {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
@@ -78,7 +89,7 @@ ORDER BY <field> DESC
 */
 func (p *Partition) Query(query string) *Cursor {
 	q := parse(query)
-	if q.orderByField == ""  {
+	if q.orderByField == "" {
 		return p.GetAll()
 	}
 

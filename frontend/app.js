@@ -1,11 +1,20 @@
 import {UISDemo} from "/frontend/uis-demo.js";
+import {Application} from "/wwt/components.js";
 
-class ExampleApp {
+class ExampleApp extends Application{
 
-    init(){
-        new UISDemo().apply()
+    onCreate(){
+        new UISDemo(this).apply()
+    }
+
+    validateSession(){
+
     }
 }
 
 
-new ExampleApp().init()
+let app = new ExampleApp();
+app.setLocale("de");
+app.addTranslation("de","/frontend/values-de/strings.xml");
+app.addTranslation("en","/frontend/values-en/strings.xml");
+app.create();
