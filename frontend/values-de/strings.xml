@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="uis_login_title">"Login"</string>
+    <string name="login_title">Einloggen bei %s</string>
+    <string name="username">Nutzername</string>
+    <string name="password">Kennwort</string>
+    <string name="login">Login</string>
+    <string name="login_failed">Nutzername oder Kennwort falsch.</string>
 </resources>

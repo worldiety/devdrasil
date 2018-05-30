@@ -79,8 +79,10 @@ func NewDevdrasil() *Devdrasil {
 	devdrasil.mux = http.DefaultServeMux
 	devdrasil.sessionPlugin = session.NewSessionAPI(devdrasil.db)
 
+	installHandlerSession(devdrasil)
 	installFrontendHandler(devdrasil)
 	installPluginProxy(devdrasil)
+
 	return devdrasil
 }
 

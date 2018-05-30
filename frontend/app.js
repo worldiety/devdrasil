@@ -1,14 +1,31 @@
-import {UISDemo} from "/frontend/uis-demo.js";
+import {UISDashboard} from "/frontend/uis-dashboard.js";
 import {Application} from "/wwt/components.js";
+import {UISLogin} from "./uis-login.js";
 
 class ExampleApp extends Application{
 
     onCreate(){
-        new UISDemo(this).apply()
+        this.validateSession();
     }
 
     validateSession(){
+        let sessionId = this.getSessionId();
+        if (sessionId == null){
+            new UISLogin(this).apply();
+        }else{
+            new UISDashboard(this).apply();
+        }
+    }
 
+    setSessionId(id){
+        localStorage.setItem("sessionId",id);
+    }
+
+    /*
+        @return string|null
+     */
+    getSessionId(){
+        return localStorage.getItem("sessionId");
     }
 }
 

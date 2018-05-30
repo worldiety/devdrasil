@@ -15,7 +15,7 @@ type handlerSession struct {
 	Register endpoints for session handling
 */
 func installHandlerSession(server *Devdrasil) {
-	handler := &handlerSession{}
+	handler := &handlerSession{server}
 	server.mux.HandleFunc("/session/auth", handler.login)
 	server.mux.HandleFunc("/users", handler.listUsers)
 }
