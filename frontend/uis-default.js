@@ -7,6 +7,11 @@ class DefaultUserInterfaceState extends UserInterfaceState {
         super(app);
     }
 
+    apply(){
+        super.apply();
+        document.body.style.backgroundColor = "#f1f1f1";
+    }
+
     attachPromise(promise){
         promise.then(res =>{
             if (res.status == 403){

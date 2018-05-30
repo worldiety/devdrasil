@@ -25,12 +25,13 @@ type Plugin struct {
 }
 
 func NewSessionAPI(db *db.Database) *Plugin {
-	return &Plugin{db: db}
+	plg := &Plugin{db: db}
+	plg.ensureAdminUser()
+	return plg
 }
 
 func NewPlugin(db *db.Database) *plugin.Description {
 	plg := NewSessionAPI(db)
-	plg.ensureAdminUser()
 
 	desc := plugin.NewDescription(PLUGIN_ID)
 	desc.Doc("The Authentication & Session plugin, providing the basic API.")
@@ -61,28 +62,27 @@ func (s *Plugin) ensureAdminUser() {
 		if err != nil {
 			panic(err)
 		}
-		log.Printf("created default user with password '%':'%s'", ADMIN_LOGIN, ADMIN_PWD)
+		log.Printf("created default user with password '%s':'%s'", ADMIN_LOGIN, ADMIN_PWD)
 	}
 }
 
 func (s *Plugin) AuthenticateUser(login string, password string, client string) (plugin.SessionId, error) {
 
 	//for now, we ignore the client
-	request := &AuthUserRequest{}
 
 	user := &DBUser{}
-	err := s.db.Partition(TABLE_USER).Get(request.Login, user)
+	err := s.db.Partition(TABLE_USER).Get(login, user)
 	if err != nil {
-		log.Printf("failed to authenticate '%s': %s\n", request.Login, err)
+		log.Printf("failed to authenticate '%s': %s\n", login, err)
 		return "", ErrPermissionDenied("authentication failure")
 	}
 
 	if !user.Active {
 		return "", ErrPermissionDenied("User is inactive")
 	}
-	err = bcrypt.CompareHashAndPassword(user.PasswordHash, []byte(request.Password))
+	err = bcrypt.CompareHashAndPassword(user.PasswordHash, []byte(password))
 	if err != nil {
-		log.Printf("failed to compare '%s': %s\n", request.Login, err)
+		log.Printf("failed to compare '%s': %s\n", login, err)
 		return "", ErrPermissionDenied("authentication failure")
 	}
 

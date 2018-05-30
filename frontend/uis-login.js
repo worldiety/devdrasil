@@ -10,23 +10,29 @@ import {
 } from "/wwt/components.js";
 
 import {DefaultUserInterfaceState} from "/frontend/uis-default.js";
+import {UISDashboard} from "/frontend/uis-dashboard.js";
 
 export {UISLogin}
 
 class UISLogin extends DefaultUserInterfaceState {
+
+    static NAME() {
+        return "login";
+    }
 
     constructor(app) {
         super(app);
     }
 
     apply() {
+        super.apply();
         let appName = "dev";
         this.setTitle(this.getString("login_title", appName));
-        document.body.style.backgroundColor = "#f1f1f1";
+
 
         let card = new Card();
         card.getElement().style.maxWidth = "25rem";
-        card.getElement().style.padding = "1rem";
+
         card.getElement().style.margin = "auto";
 
         let title = new H6();
@@ -49,7 +55,7 @@ class UISLogin extends DefaultUserInterfaceState {
         card.add(btnLogin);
 
         btnLogin.setOnClick(e => {
-            this.doLogin(username, password);
+            this.doLogin(username.getText(), password.getText());
         });
 
         this.setContent(card);
@@ -68,14 +74,21 @@ class UISLogin extends DefaultUserInterfaceState {
         let request = new Request("/session/auth");
 
 
-        let promise = fetch(request, params)
-        promise.then(res => {
-            if (res.status != 200) {
-
-            }
-            console.log(res);
-        });
+        let promise = fetch(request, params);
         this.attachPromise(promise);
+        promise.then(res => {
+            if (res.status == 200) {
+                return res.json();
+            }
+            return null;
+        }).then(json => {
+            if (json != null) {
+                this.getApplication().setSessionId(json.SessionId);
+                this.getNavigation().forward(UISDashboard.NAME());
+            }
+
+        });
+
     }
 }
 
