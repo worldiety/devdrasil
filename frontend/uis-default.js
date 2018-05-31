@@ -1,6 +1,6 @@
-import {AppBar, Drawer, Icon, PermissionDeniedException, UserInterfaceState} from "/wwt/components.js";
+import {AppBar, Box, Card, Drawer, Icon, PermissionDeniedException, UserInterfaceState} from "/wwt/components.js";
 
-export {DefaultUserInterfaceState}
+export {DefaultUserInterfaceState, Main}
 
 /**
  * All UIS inherit from here, to get the common behavior
@@ -58,5 +58,30 @@ class DefaultUserInterfaceState extends UserInterfaceState {
     setContentWithoutToolbar(component) {
         super.setContent(component);
     }
+}
 
+
+class Main extends Box {
+    constructor(showAsCard = true) {
+        super();
+        this.showAsCard = showAsCard;
+        if (showAsCard) {
+            this.card = new Card();
+            super.add(this.card);
+        }
+
+        this.getElement().style.maxWidth = "75rem";
+        this.getElement().style.margin = "auto";
+        this.getElement().style.padding = "1rem";
+
+    }
+
+    add(component) {
+        if (this.showAsCard) {
+            this.card.add(component);
+        } else {
+            super.add(component);
+        }
+
+    }
 }

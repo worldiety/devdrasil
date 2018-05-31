@@ -1,6 +1,6 @@
 import {H3, UserInterfaceState} from "/wwt/components.js";
 
-import {DefaultUserInterfaceState} from "/frontend/uis-default.js";
+import {DefaultUserInterfaceState, Main} from "/frontend/uis-default.js";
 
 export {UISDashboard}
 
@@ -16,12 +16,16 @@ class UISDashboard extends DefaultUserInterfaceState {
 
     apply() {
         super.apply();
+
+        let card = new Main();
+
         let hello = new H3();
         hello.setText("dashboard");
+        card.add(hello);
 
         this.topBar.setTitle(this.getString("dashboard"));
 
-        this.setContent(hello);
+        this.setContent(card);
 
     }
 

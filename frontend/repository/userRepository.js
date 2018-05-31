@@ -44,3 +44,14 @@ function _requestUser(fetcher, id) {
     };
     return fetcher.fetchRaw('/session/auth', cfg)
 }
+
+function _requestUsers(fetcher, id) {
+    let cfg = {
+        method: 'GET',
+        headers: {
+            'sid': id,
+        },
+        cache: 'no-store'
+    };
+    return fetcher.fetchRaw('/users', cfg)
+}
