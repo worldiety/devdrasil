@@ -46,13 +46,32 @@ func (h *frontendHandler) handleRoot(writer http.ResponseWriter, request *http.R
 	sb.WriteString(`<head>`)
 	sb.WriteString("\n")
 
-	sb.WriteString(`<meta name="viewport" content="width=device-width, minimum-scale=1.0, user-scalable=no">`)
+	sb.WriteString(`<meta name="HandheldFriendly" content="true"/>`)
+	sb.WriteString("\n")
+
+	sb.WriteString(`<meta name="apple-mobile-web-app-capable" content="yes"/>`)
+	sb.WriteString("\n")
+
+	sb.WriteString(`<meta name="apple-mobile-web-app-status-bar-style" content="green"/>`)
+	sb.WriteString("\n")
+
+	sb.WriteString(`<meta name="theme-color" content="green">`)
+	sb.WriteString("\n")
+
+	sb.WriteString(`<meta name="apple-mobile-web-app-title" content="demo wwt app">`)
+	sb.WriteString("\n")
+
+
+	sb.WriteString(`<meta name="viewport" content="width=device-width, minimum-scale=1.0,initial-scale=1 maximum-scale=1 user-scalable=0 minimal-ui"/>`)
 	sb.WriteString("\n")
 
 	sb.WriteString(`<link rel="stylesheet" href="/wwt/mcw.min.css"/>`)
 	sb.WriteString("\n")
 
 	sb.WriteString(`<link rel="stylesheet" href="/wwt/fixes.css"/>`)
+	sb.WriteString("\n")
+
+	sb.WriteString(`<link rel="stylesheet" href="/wwt/material_icons.css">`)
 	sb.WriteString("\n")
 
 	sb.WriteString(`<script type="text/javascript" src="/wwt/mcw.min.js"></script>`)

@@ -1,23 +1,62 @@
-import {UserInterfaceState} from "/wwt/components.js";
+import {AppBar, Drawer, Icon, PermissionDeniedException, UserInterfaceState} from "/wwt/components.js";
 
 export {DefaultUserInterfaceState}
 
+/**
+ * All UIS inherit from here, to get the common behavior
+ */
 class DefaultUserInterfaceState extends UserInterfaceState {
     constructor(app) {
         super(app);
+
+        //the app bar should never be missing
+        this.topBar = new AppBar();
+        //the title sets the document title automatically, you can manually set it differently with  "this.setTitle("Component Demo");"
+        this.topBar.setTitle("app title");
+
+        //each app should have a drawer
+        this.drawer = new Drawer();
+        this.drawer.setCaption("drawer caption");
+
+        this.topBar.setDrawer(this.drawer);
     }
 
-    apply(){
+    onCreateSideMenu() {
+        this.drawer.addMenuEntry("#", new Icon("star"), "Star Text and selected", true);
+        this.drawer.addMenuEntry("#", new Icon("inbox"), "Inbox Text", false);
+        this.drawer.addMenuEntry("#", new Icon("add"), "Add Text", false);
+
+        let logoutItem = this.drawer.addMenuEntry("#", new Icon("exit_to_app"), this.getString("logout"), false);
+        logoutItem.onclick = e => {
+            this.getApplication().getSessionRepository().deleteSession();
+            //avoid dependency cycle
+            this.getNavigation().forward("login");
+        }
+    }
+
+    handleDefaultError(err) {
+        if (err instanceof PermissionDeniedException) {
+            alert(this.getString("login_failed"))
+        } else {
+            alert(err);
+        }
+
+    }
+
+
+    apply() {
+        this.onCreateSideMenu();
         super.apply();
         document.body.style.backgroundColor = "#f1f1f1";
     }
 
-    attachPromise(promise){
-        promise.then(res =>{
-            if (res.status == 403){
-                alert(this.getString("login_failed"));
-            }
-        });
-
+    setContent(component) {
+        this.topBar.setContent(component);
+        super.setContent(this.topBar);
     }
+
+    setContentWithoutToolbar(component) {
+        super.setContent(component);
+    }
+
 }

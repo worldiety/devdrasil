@@ -1,6 +1,8 @@
 import {UISDashboard} from "/frontend/uis-dashboard.js";
 import {Application} from "/wwt/components.js";
 import {UISLogin} from "/frontend/uis-login.js";
+import {SessionRepository} from "/frontend/repository/sessionRepository.js";
+import {UserRepository} from "/frontend/repository/userRepository.js";
 
 class ExampleApp extends Application {
 
@@ -8,25 +10,30 @@ class ExampleApp extends Application {
         this.validateSession();
     }
 
-    validateSession() {
-        let sessionId = this.getSessionId();
-        if (sessionId == null) {
-            this.getNavigation().forward(UISLogin.NAME());
-        } else {
-            this.getNavigation().forward(UISDashboard.NAME());
+    getSessionRepository() {
+        if (this.sessionRepository == null) {
+            this.sessionRepository = new SessionRepository(this.getFetcher());
         }
+        return this.sessionRepository;
     }
 
-    setSessionId(id) {
-        localStorage.setItem("sessionId", id);
+    getUserRepository() {
+        if (this.userRepository == null) {
+            this.userRepository = new UserRepository(this.getFetcher(), this.getSessionRepository());
+        }
+        return this.userRepository;
     }
 
-    /*
-        @return string|null
-     */
-    getSessionId() {
-        return localStorage.getItem("sessionId");
+    validateSession() {
+        let session = this.getSessionRepository().getSession().then(session => {
+            this.getNavigation().forward(UISDashboard.NAME());
+        }).catch(err => {
+            this.getNavigation().forward(UISLogin.NAME());
+        });
+
     }
+
+
 }
 
 

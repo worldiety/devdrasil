@@ -32,8 +32,8 @@ class UISLogin extends DefaultUserInterfaceState {
 
         let card = new Card();
         card.getElement().style.maxWidth = "25rem";
-
         card.getElement().style.margin = "auto";
+        card.getElement().style.marginTop = "1rem";
 
         let title = new H6();
         title.setText(this.getString("login_title", appName));
@@ -55,40 +55,14 @@ class UISLogin extends DefaultUserInterfaceState {
         card.add(btnLogin);
 
         btnLogin.setOnClick(e => {
-            this.doLogin(username.getText(), password.getText());
+            this.getApplication().getSessionRepository().getSession(username.getText(), password.getText(), "devdrasil").then(session => {
+                    this.getNavigation().forward(UISDashboard.NAME());
+                }
+            ).catch(err => this.handleDefaultError(err));
         });
 
-        this.setContent(card);
+        this.setContentWithoutToolbar(card);
     }
 
-    doLogin(user, password) {
-        let headers = new Headers();
-        headers.append("login", user);
-        headers.append("password", password);
-        headers.append("client", "devdrasil");
-
-        let params = {
-            headers: headers,
-        };
-
-        let request = new Request("/session/auth");
-
-
-        let promise = fetch(request, params);
-        this.attachPromise(promise);
-        promise.then(res => {
-            if (res.status == 200) {
-                return res.json();
-            }
-            return null;
-        }).then(json => {
-            if (json != null) {
-                this.getApplication().setSessionId(json.SessionId);
-                this.getNavigation().forward(UISDashboard.NAME());
-            }
-
-        });
-
-    }
 }
 

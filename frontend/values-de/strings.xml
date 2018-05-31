@@ -5,4 +5,6 @@
     <string name="password">Kennwort</string>
     <string name="login">Login</string>
     <string name="login_failed">Nutzername oder Kennwort falsch.</string>
+    <string name="dashboard">Dashboard</string>
+    <string name="logout">Abmelden</string>
 </resources>

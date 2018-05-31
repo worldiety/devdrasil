@@ -26,6 +26,7 @@ func (h *handlerSession) login(writer http.ResponseWriter, request *http.Request
 	pwd := request.Header.Get("password")
 	client := request.Header.Get("client")
 
+
 	sessionId, e := h.server.sessionPlugin.AuthenticateUser(login, pwd, client)
 	if e != nil {
 		http.Error(writer, e.Error(), http.StatusForbidden)
