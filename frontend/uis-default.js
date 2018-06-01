@@ -22,16 +22,11 @@ class DefaultUserInterfaceState extends UserInterfaceState {
     }
 
     onCreateSideMenu() {
-        this.drawer.addMenuEntry("#", new Icon("star"), "Star Text and selected", true);
-        this.drawer.addMenuEntry("#", new Icon("inbox"), "Inbox Text", false);
-        this.drawer.addMenuEntry("#", new Icon("add"), "Add Text", false);
+        this.getApplication().onCreateDefaultSideMenu(this.drawer).then(_=>{
 
-        let logoutItem = this.drawer.addMenuEntry("#", new Icon("exit_to_app"), this.getString("logout"), false);
-        logoutItem.onclick = e => {
-            this.getApplication().getSessionRepository().deleteSession();
-            //avoid dependency cycle
-            this.getNavigation().forward("login");
-        }
+
+        });
+
     }
 
     handleDefaultError(err) {
@@ -57,6 +52,10 @@ class DefaultUserInterfaceState extends UserInterfaceState {
 
     setContentWithoutToolbar(component) {
         super.setContent(component);
+    }
+
+    getTopBar(){
+        return this.topBar;
     }
 }
 

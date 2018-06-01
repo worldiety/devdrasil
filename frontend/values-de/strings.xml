@@ -7,4 +7,5 @@
     <string name="login_failed">Nutzername oder Kennwort falsch.</string>
     <string name="dashboard">Dashboard</string>
     <string name="logout">Abmelden</string>
+    <string name="accounts">Benutzer &amp; Gruppen verwalten</string>
 </resources>

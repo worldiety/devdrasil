@@ -17,7 +17,8 @@ type handlerSession struct {
 func installHandlerSession(server *Devdrasil) {
 	handler := &handlerSession{server}
 	server.mux.HandleFunc("/session/auth", handler.login)
-	server.mux.HandleFunc("/users", handler.listUsers)
+	server.mux.HandleFunc("/users/all", handler.listUsers)
+	server.mux.HandleFunc("/users/account", handler.getCurrentUser)
 }
 
 //request header must "login" and "password" and "client"
@@ -25,7 +26,6 @@ func (h *handlerSession) login(writer http.ResponseWriter, request *http.Request
 	login := request.Header.Get("login")
 	pwd := request.Header.Get("password")
 	client := request.Header.Get("client")
-
 
 	sessionId, e := h.server.sessionPlugin.AuthenticateUser(login, pwd, client)
 	if e != nil {
@@ -42,6 +42,31 @@ func (h *handlerSession) login(writer http.ResponseWriter, request *http.Request
 		http.Error(writer, e.Error(), http.StatusInternalServerError)
 		return
 	}
+	writer.Header().Add("Content-Type", "application/json")
+	writer.Write(buf)
+}
+
+//request header must be "sid"
+func (h *handlerSession) getCurrentUser(writer http.ResponseWriter, request *http.Request) {
+	sessionId := request.Header.Get("sid")
+	activeSession, e := h.server.sessionPlugin.GetSession(sessionId)
+	if e != nil {
+		http.Error(writer, e.Error(), http.StatusForbidden)
+		return
+	}
+
+	user, e := h.server.sessionPlugin.GetUser(activeSession.Uid)
+	if e != nil {
+		http.Error(writer, e.Error(), http.StatusForbidden)
+		return
+	}
+
+	buf, e := json.Marshal(&userDTO{user.Id, user.Properties, user.Plugins, user.Active})
+	if e != nil {
+		http.Error(writer, e.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	writer.Header().Add("Content-Type", "application/json")
 	writer.Write(buf)
 }
@@ -72,20 +97,6 @@ func (h *handlerSession) listUsers(writer http.ResponseWriter, request *http.Req
 		return
 	}
 
-	type userDTO struct {
-		//the login id
-		Id string
-
-		//roles and such
-		Properties plugin.Properties
-
-		//the allowed plugin instance ids
-		Plugins plugin.Plugins
-
-		//flag if user is active or not, without deleting him
-		Active bool
-	}
-
 	type wrapper struct {
 		Users []*userDTO
 	}
@@ -102,4 +113,18 @@ func (h *handlerSession) listUsers(writer http.ResponseWriter, request *http.Req
 
 	writer.Header().Add("Content-Type", "application/json")
 	writer.Write(buf)
+}
+
+type userDTO struct {
+	//the login id
+	Id string
+
+	//roles and such
+	Properties plugin.Properties
+
+	//the allowed plugin instance ids
+	Plugins plugin.Plugins
+
+	//flag if user is active or not, without deleting him
+	Active bool
 }
