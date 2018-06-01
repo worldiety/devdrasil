@@ -1,4 +1,4 @@
-import {H3, UserInterfaceState} from "/wwt/components.js";
+import {Body1, H3, UserInterfaceState} from "/wwt/components.js";
 
 import {DefaultUserInterfaceState, Main} from "/frontend/uis-default.js";
 
@@ -24,6 +24,12 @@ class UISDashboard extends DefaultUserInterfaceState {
         card.add(hello);
 
         this.topBar.setTitle(this.getString("dashboard"));
+
+        this.getApplication().getUserRepository().getUsers().then(users => {
+            for (let user of users) {
+                card.add(new Body1(JSON.stringify(user)));
+            }
+        });
 
         this.setContent(card);
 

@@ -1,9 +1,14 @@
-import {Fetcher} from "/wwt/components.js";
+import {Fetcher, throwFromHTTP} from "/wwt/components.js";
 
 export {UserRepository, User}
 
 class User {
-
+    constructor(id, properties, plugins, isActive) {
+        this.id = id;
+        this.properties = properties;
+        this.plugins = plugins;
+        this.isActive = isActive;
+    }
 }
 
 class UserRepository {
@@ -27,7 +32,18 @@ class UserRepository {
      *
      * @returns {Promise<[]User>}
      */
-    async getUsers(){
+    async getUsers() {
+        let session = await this.sessionRepository.getSession();
+        return _requestUsers(this.fetcher, session.id).then(raw => {
+            throwFromHTTP(raw);
+            return raw.json();
+        }).then(json => {
+            let users = [];
+            for (let user of json.Users) {
+                users.push(new User(user.Id, user.Properties, user.Plugins, user.Active));
+            }
+            return users;
+        });
 
     }
 }
