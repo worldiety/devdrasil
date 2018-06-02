@@ -7,6 +7,7 @@ import {
     Icon,
     ListView,
     LRLayout,
+    Menu,
     Span,
     TwoLineLeadingAndTrailingIcon,
     UserInterfaceState
@@ -54,7 +55,7 @@ class UISAccounts extends DefaultUserInterfaceState {
 class UserList extends Card {
     /**
      *
-     * @param {UserInterfaceState} uis
+     * @param {DefaultUserInterfaceState} uis
      */
     constructor(uis) {
         super();
@@ -68,7 +69,7 @@ class UserList extends Card {
         let btnAddUser = new Button();
         btnAddUser.setText(uis.getString("add"));
         btnAddUser.setOnClick(e => {
-            alert("add user");
+            this.uis.showMessage("add user");
         });
         addUserItem.addRight(btnAddUser);
         listView.add(addUserItem);
@@ -92,10 +93,21 @@ class UserList extends Card {
 
                     tmp += key;
                 }
-                let more = new Button("test");
-                more.setOnClick(e => {
-                    alert("mehr");
+                let moreMenu = new Menu();
+                moreMenu.add("Bearbeiten", _ => {
+                    this.uis.showMessage("bearbeiten");
                 });
+                moreMenu.add("Löschen", _ => {
+                    this.uis.showMessage("löschen");
+                });
+
+                let more = new Button();
+                more.setIcon(new Icon("more_vert"));
+                more.setOnClick(e => {
+                    moreMenu.popup(more);
+                });
+
+
                 let item = new TwoLineLeadingAndTrailingIcon(new Icon("account_circle"), user.id, tmp, more);
                 listView.add(item);
             }

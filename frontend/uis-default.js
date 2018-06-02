@@ -1,4 +1,16 @@
-import {AppBar, Box, Card, Drawer, Icon, PermissionDeniedException, UserInterfaceState} from "/wwt/components.js";
+import {
+    AppBar,
+    Body1,
+    Box,
+    Button,
+    Card,
+    Dialog,
+    Drawer,
+    Icon,
+    PermissionDeniedException,
+    showMessage as showMsgLib,
+    UserInterfaceState,
+} from "/wwt/components.js";
 
 export {DefaultUserInterfaceState, Main}
 
@@ -22,7 +34,7 @@ class DefaultUserInterfaceState extends UserInterfaceState {
     }
 
     onCreateSideMenu() {
-        this.getApplication().onCreateDefaultSideMenu(this.drawer).then(_=>{
+        this.getApplication().onCreateDefaultSideMenu(this.drawer).then(_ => {
 
 
         });
@@ -31,11 +43,15 @@ class DefaultUserInterfaceState extends UserInterfaceState {
 
     handleDefaultError(err) {
         if (err instanceof PermissionDeniedException) {
-            alert(this.getString("login_failed"))
+            this.showMessage(this.getString("login_failed"));
         } else {
-            alert(err);
+            this.showMessage(err.toString());
         }
 
+    }
+
+    showMessage(text) {
+        showMsgLib(text, this.getString("ok"));
     }
 
 
@@ -54,7 +70,7 @@ class DefaultUserInterfaceState extends UserInterfaceState {
         super.setContent(component);
     }
 
-    getTopBar(){
+    getTopBar() {
         return this.topBar;
     }
 }
