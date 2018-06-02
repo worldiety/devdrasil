@@ -7,5 +7,13 @@
     <string name="login_failed">Nutzername oder Kennwort falsch.</string>
     <string name="dashboard">Dashboard</string>
     <string name="logout">Abmelden</string>
-    <string name="accounts">Benutzer &amp; Gruppen verwalten</string>
+    <string name="accounts">Zugänge verwalten</string>
+    <string name="manage_companies_hint">Verwalte hier die Firmen, um Nutzer zu organisieren.
+    </string>
+    <string name="manage_groups_hint">Verwalte hier deine Gruppen, um einheitlich die Rechte und Eigenschaften von Nutzern zu kontrollieren.
+    </string>
+    <string name="manage_users_hint">Verwalte hier deine Nutzer, um zusätzlich zu Gruppen individuelle Rechte und Eigenschaften zu setzen.
+    </string>
+    <string name="your_users">Deine Nutzer</string>
+    <string name="add">Hinzufügen</string>
 </resources>

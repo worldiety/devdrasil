@@ -69,7 +69,7 @@ func (s *Plugin) ensureAdminUser() {
 func (s *Plugin) AuthenticateUser(login string, password string, client string) (plugin.SessionId, error) {
 
 	//for now, we ignore the client
-
+	login = strings.ToLower(login);
 	user := &DBUser{}
 	err := s.db.Partition(TABLE_USER).Get(login, user)
 	if err != nil {

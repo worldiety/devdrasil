@@ -30,7 +30,7 @@ class UserRepository {
 
     /**
      * Returns the user either by getting it from cache or by loading it from the endpoint
-     * @returns {Promise<User>}
+     * @returns {!PromiseLike<User>}
      */
     async getUser() {
         let session = await this.sessionRepository.getSession();
@@ -46,7 +46,7 @@ class UserRepository {
     /**
      * Returns all available users
      *
-     * @returns {Promise<[]User>}
+     * @returns {!PromiseLike<[]User>}
      */
     async getUsers() {
         let session = await this.sessionRepository.getSession();

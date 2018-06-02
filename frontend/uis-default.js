@@ -69,7 +69,7 @@ class Main extends Box {
             super.add(this.card);
         }
 
-        this.getElement().style.maxWidth = "75rem";
+        this.getElement().style.maxWidth = "960px";
         this.getElement().style.margin = "auto";
         this.getElement().style.padding = "1rem";
 
