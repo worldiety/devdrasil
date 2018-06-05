@@ -1,11 +1,11 @@
 package main
-
+/*
 import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
-	"github.com/worldiety/devdrasil/plugin"
+	"github.com/worldiety/devdrasil/backend"
 	"io"
 	"net/http"
 	"strconv"
@@ -32,7 +32,7 @@ func (h *pluginProxy) handle(writer http.ResponseWriter, request *http.Request) 
 	}
 
 	segments := strings.Split(path, "/")
-	instanceId := plugin.InstanceId(segments[1])
+	instanceId := backend.InstanceId(segments[1])
 	methodId := path[5+len(instanceId):]
 	sessionId := request.Header.Get("sid")
 	params := request.Header.Get("params")
@@ -113,3 +113,4 @@ func toJson(obj interface{}) string {
 	}
 	return string(b)
 }
+*/

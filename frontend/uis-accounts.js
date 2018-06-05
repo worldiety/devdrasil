@@ -3,6 +3,7 @@ import {
     Body1,
     Button,
     Card,
+    Dialog,
     H3,
     Icon,
     ListView,
@@ -14,7 +15,7 @@ import {
 } from "/wwt/components.js";
 
 import {DefaultUserInterfaceState, Main} from "/frontend/uis-default.js";
-import {ROLE_LIST_USER} from "/frontend/repository/userRepository.js";
+import {ROLE_LIST_USER, User} from "/frontend/repository/userRepository.js";
 
 export {UISAccounts}
 
@@ -94,11 +95,12 @@ class UserList extends Card {
                     tmp += key;
                 }
                 let moreMenu = new Menu();
-                moreMenu.add("Bearbeiten", _ => {
+                moreMenu.add(uis.getString("edit"), _ => {
                     this.uis.showMessage("bearbeiten");
                 });
-                moreMenu.add("Löschen", _ => {
-                    this.uis.showMessage("löschen");
+                moreMenu.add(uis.getString("delete"), _ => {
+                    this.delete(user);
+
                 });
 
                 let more = new Button();
@@ -112,5 +114,25 @@ class UserList extends Card {
                 listView.add(item);
             }
         });
+    }
+
+    /**
+     *
+     * @param {User} user
+     */
+    delete(user) {
+        let dlg = new Dialog();
+        dlg.add(new Body1(this.uis.getString("delete_user_x", user.id)));
+        let no = new Button(this.uis.getString("cancel"));
+        no.setOnClick(_ => {
+            dlg.close();
+        });
+        let yes = new Button(this.uis.getString("delete"));
+        yes.setOnClick(_ => {
+            dlg.close();
+        })
+        dlg.addFooter(no);
+        dlg.addFooter(yes);
+        dlg.show();
     }
 }

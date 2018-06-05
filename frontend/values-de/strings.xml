@@ -17,4 +17,8 @@
     <string name="your_users">Deine Nutzer</string>
     <string name="add">Hinzufügen</string>
     <string name="ok">Ok</string>
+    <string name="edit">Bearbeiten</string>
+    <string name="delete">Löschen</string>
+    <string name="delete_user_x">Möchtest du den Nutzer '%s' wirklichen löschen?</string>
+    <string name="cancel">Abbrechen</string>
 </resources>

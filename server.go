@@ -3,8 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/worldiety/devdrasil/db"
-	"github.com/worldiety/devdrasil/plugin"
-	"github.com/worldiety/devdrasil/plugin/session"
+	"github.com/worldiety/devdrasil/backend"
 	"log"
 	"net/http"
 	"os"
@@ -12,6 +11,8 @@ import (
 	"runtime"
 	"strconv"
 	"sync"
+	"github.com/worldiety/devdrasil/backend/session"
+	"github.com/worldiety/devdrasil/backend/user"
 )
 
 type Devdrasil struct {
@@ -36,16 +37,10 @@ type Devdrasil struct {
 	//current working dir
 	cwd string
 
-	//plugins are organized through their managers. Each plugin get's it's own manager.
-	pluginManagers []plugin.Manager
-
-	//each plugin is accessed by their instance id, but may be located at a different host
-	reverseInstanceLookup map[plugin.InstanceId]*plugin.ManagedInstance
-
 	mutex sync.Mutex
 
-	//the built-in session management
-	sessionPlugin *session.Plugin
+	restSessions *backend.EndpointSessions
+	restUsers    *backend.EndpointUsers
 }
 
 func NewDevdrasil() *Devdrasil {
@@ -77,11 +72,22 @@ func NewDevdrasil() *Devdrasil {
 	devdrasil.port = *flag.Int("port", 8080, "The port on which devdrasil listens")
 
 	devdrasil.mux = http.DefaultServeMux
-	devdrasil.sessionPlugin = session.NewSessionAPI(devdrasil.db)
 
-	installHandlerSession(devdrasil)
 	installFrontendHandler(devdrasil)
-	installPluginProxy(devdrasil)
+
+	users, err := user.NewUsers(devdrasil.db)
+	if err != nil {
+		panic(err)
+	}
+
+	permissions, err := user.NewPermissions(devdrasil.db)
+	if err != nil {
+		panic(err)
+	}
+	sessions := session.NewSessions(devdrasil.db)
+
+	devdrasil.restUsers = backend.NewEndpointUsers(devdrasil.mux, sessions, users, permissions)
+	devdrasil.restSessions = backend.NewEndpointSessions(devdrasil.mux, sessions, users)
 
 	return devdrasil
 }
@@ -97,12 +103,6 @@ func ensureDir(dir string) string {
 		log.Fatalf("not a directory '%s'\n", dir)
 	}
 	return dir
-}
-
-func (s *Devdrasil) GetManagedPlugin(instanceId plugin.InstanceId) *plugin.ManagedInstance {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	return s.reverseInstanceLookup[instanceId]
 }
 
 //Start actually launches the server
