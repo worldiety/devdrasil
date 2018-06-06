@@ -15,7 +15,7 @@ import {
 } from "/wwt/components.js";
 
 import {DefaultUserInterfaceState, Main} from "/frontend/uis-default.js";
-import {ROLE_LIST_USER, User} from "/frontend/repository/userRepository.js";
+import {User} from "/frontend/repository/userRepository.js";
 
 export {UISAccounts}
 
@@ -130,7 +130,7 @@ class UserList extends Card {
         let yes = new Button(this.uis.getString("delete"));
         yes.setOnClick(_ => {
             dlg.close();
-        })
+        });
         dlg.addFooter(no);
         dlg.addFooter(yes);
         dlg.show();

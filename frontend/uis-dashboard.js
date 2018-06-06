@@ -1,7 +1,6 @@
 import {Body1, H3, UserInterfaceState} from "/wwt/components.js";
 
 import {DefaultUserInterfaceState, Main} from "/frontend/uis-default.js";
-import {ROLE_LIST_USER} from "/frontend/repository/userRepository.js";
 
 export {UISDashboard}
 
@@ -32,12 +31,6 @@ class UISDashboard extends DefaultUserInterfaceState {
             }
         });
 
-        this.getApplication().getUserRepository().getUser().then(user => {
-            if (user.hasProperty(ROLE_LIST_USER)){
-                card.add(new Body1("account:" + JSON.stringify(user)));
-            }
-
-        });
 
         this.setContent(card);
 

@@ -55,7 +55,8 @@ class UISLogin extends DefaultUserInterfaceState {
         card.add(btnLogin);
 
         btnLogin.setOnClick(e => {
-            this.getApplication().getSessionRepository().getSession(username.getText(), password.getText(), "devdrasil").then(session => {
+            this.getApplication().getSessionRepository().deleteSession();
+            this.getApplication().getSessionRepository().getSession(username.getText(), password.getText(), "web-client-1.0").then(session => {
                     this.getNavigation().forward(UISDashboard.NAME());
                 }
             ).catch(err => this.handleDefaultError(err));

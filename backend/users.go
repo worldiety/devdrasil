@@ -58,8 +58,25 @@ type EndpointUsers struct {
 func NewEndpointUsers(mux *http.ServeMux, sessions *session.Sessions, users *user.Users, permissions *user.Permissions) *EndpointUsers {
 	endpoint := &EndpointUsers{mux: mux, users: users, sessions: sessions, permissions: permissions}
 	mux.HandleFunc("/users/", endpoint.userVerbs)
+	mux.HandleFunc("/users/permissions/", endpoint.permissionsVerbs)
 	mux.HandleFunc("/users", endpoint.usersVerbs)
 	return endpoint
+}
+
+func (endpoint *EndpointUsers) permissionsVerbs(writer http.ResponseWriter, request *http.Request) {
+	userId, err := db.ParsePK(strings.TrimPrefix(request.URL.Path, "/users/permissions/"))
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	switch request.Method {
+	case "GET":
+		endpoint.queryPermissions(writer, request, userId)
+	default:
+		http.Error(writer, request.Method, http.StatusMethodNotAllowed);
+		return
+	}
 }
 
 func (endpoint *EndpointUsers) userVerbs(writer http.ResponseWriter, request *http.Request) {
@@ -84,7 +101,7 @@ func (endpoint *EndpointUsers) userVerbs(writer http.ResponseWriter, request *ht
 }
 
 // A session user can always request it's own user object, but others require the correct permission (which is GET_USER)
-//  @Path GET /users/{id} (id is base64 encoded user PK)
+//  @Path GET /users/{id} (id is hex encoded user PK)
 //  @Header sid string
 //	@Return 200 github.com/worldiety/devdrasil/backend/userDTO
 //  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent)
@@ -351,4 +368,59 @@ func (e *EndpointUsers) deleteUser(writer http.ResponseWriter, request *http.Req
 	}
 
 	WriteOK(writer)
+}
+
+type userPermissionDTO struct {
+	ListUsers  bool
+	CreateUser bool
+	DeleteUser bool
+	UpdateUser bool
+	GetUser    bool
+}
+
+// A user can request the permissions, always from his own account, or if he has the list permission
+//  @Path GET /users/permissions/{id}
+//  @Header sid string
+//	@Return 200 github.com/worldiety/devdrasil/backend/userPermissionDTO
+//  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent | if user has not the permission)
+//  @Return 500 (for any other error)
+func (e *EndpointUsers) queryPermissions(writer http.ResponseWriter, request *http.Request, userId db.PK) {
+	_, usr := e.validate(writer, request, user.LIST_USERS)
+	if usr == nil {
+		return
+	}
+
+	listUser, err := e.permissions.IsAllowed(user.LIST_USERS, usr)
+	if AnyErrorAsInternalError(err, writer) {
+		return
+	}
+
+	createUser, err := e.permissions.IsAllowed(user.CREATE_USER, usr)
+	if AnyErrorAsInternalError(err, writer) {
+		return
+	}
+
+	deleteUser, err := e.permissions.IsAllowed(user.DELETE_USER, usr)
+	if AnyErrorAsInternalError(err, writer) {
+		return
+	}
+
+	updateUser, err := e.permissions.IsAllowed(user.UPDATE_USER, usr)
+	if AnyErrorAsInternalError(err, writer) {
+		return
+	}
+
+	getUser, err := e.permissions.IsAllowed(user.GET_USER, usr)
+	if AnyErrorAsInternalError(err, writer) {
+		return
+	}
+
+	dto := &userPermissionDTO{}
+	dto.ListUsers = listUser
+	dto.CreateUser = createUser
+	dto.DeleteUser = deleteUser
+	dto.UpdateUser = updateUser
+	dto.GetUser = getUser
+
+	WriteJSONBody(writer, dto)
 }

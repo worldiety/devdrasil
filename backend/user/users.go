@@ -85,7 +85,7 @@ func NewUsers(d *db.Database) (*Users, error) {
 			//insert default configuration
 			adminUser := &User{Id: ADMIN, Login: ADMIN_LOGIN, Active: true}
 			adminUser.SetPassword(ADMIN_PWD)
-			err = users.Add(adminUser)
+			err = users.Update(adminUser)
 			if err != nil {
 				return nil, err
 			}
@@ -118,9 +118,10 @@ func (r *Users) Add(user *User) error {
 	defer tx.Commit()
 	res := make([]*User, 0)
 	err := r.crud.List(TABLE_USER, "", &res)
-	if res != nil {
+	if err != nil {
 		return err
 	}
+
 
 	//rewrite login to be case insensitive
 	user.Login = strings.ToLower(user.Login)
@@ -141,7 +142,7 @@ func (r *Users) Update(user *User) error {
 
 	res := make([]*User, 0)
 	err := r.crud.List(TABLE_USER, "", &res)
-	if res != nil {
+	if err != nil {
 		return err
 	}
 

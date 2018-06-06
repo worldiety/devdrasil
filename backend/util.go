@@ -78,3 +78,11 @@ func GetSessionAndUser(sessions *session.Sessions, users *user.Users, writer htt
 
 	return session, user
 }
+
+func AnyErrorAsInternalError(err error, writer http.ResponseWriter) bool {
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return true
+	}
+	return false
+}

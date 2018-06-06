@@ -2,15 +2,22 @@ import {throwFromHTTP} from "/wwt/components.js";
 
 export {Session, SessionRepository}
 
-const KEY_ID = "sessionId";
-const KEY_LOGIN = "sessionLogin";
+const KEY_SID = "_sid";
+const KEY_LOGIN = "_login";
+const KEY_UID = "_uid";
 
 /**
  * The session pojo
  */
 class Session {
-    constructor(id) {
-        this.id = id;
+    /**
+     *
+     * @param {string} sid
+     * @param {string} uid
+     */
+    constructor(sid, uid) {
+        this.sid = sid;
+        this.uid = uid;
     }
 }
 
@@ -21,53 +28,63 @@ class SessionRepository {
 
     constructor(fetcher) {
         this.fetcher = fetcher;
-        this.memcache = null;
-        this.login = localStorage.getItem(KEY_LOGIN);
+        this.memCacheSID = localStorage.getItem(KEY_SID);
+        this.memCacheUID = localStorage.getItem(KEY_UID);
+        this.memCacheLogin = localStorage.getItem(KEY_LOGIN);
+
+        //consistency check
+        if (this.memCacheLogin == null || this.memCacheSID == null || this.memCacheUID == null) {
+            this.memCacheSID = "";
+            this.memCacheLogin = "";
+            this.memCacheUID = "";
+        }
     }
+
 
     /**
      * Removes the session
      */
-    async deleteSession() {
+    deleteSession() {
         localStorage.removeItem(KEY_LOGIN);
-        localStorage.removeItem(KEY_ID);
-        this.memcache = null;
-        this.login = null;
+        localStorage.removeItem(KEY_UID);
+        localStorage.removeItem(KEY_SID);
+        this.memCacheSID = "";
+        this.memCacheLogin = "";
+        this.memCacheUID = "";
     }
 
 
     /**
      * Returns or requests the session. If login is not empty validates if the ondisk cache needs to get purged (e.g. login a different user)
      *
-     * @param login the login name {string|null}
-     * @param password the password {string|null}
-     * @param client the client token {string|null}
+     * @param {string} login the login name
+     * @param {string} password the password
+     * @param {string} client the client token
      * @throws {IOException|PermissionDeniedException}
      * @returns {Promise<Session>}
      */
-    async getSession(login = null, password = "", client = "") {
-        if ((login == null || login === this.login) && this.login != null) {
-            if (this.memcache == null) {
-                this.memcache = localStorage.getItem(KEY_ID);
-                if (this.memcache != null) {
-                    return new Session(this.memcache);
-                }
-            } else {
-                return new Session(this.memcache);
-            }
+    async getSession(login = "", password = "", client = "") {
+        let requiresLogin = this.memCacheLogin === "" || (login !== this.memCacheLogin && login !== "");
+
+        if (requiresLogin) {
+            //requires update
+            let sessionPromise = _requestSession(this.fetcher, login, password, client);
+            return sessionPromise.then(raw => {
+                throwFromHTTP(raw);
+                return raw.json();
+            }).then(json => {
+                this.memCacheSID = json.Id;
+                this.memCacheLogin = login;
+                this.memCacheUID = json.User;
+                localStorage.setItem(KEY_SID, this.memCacheSID);
+                localStorage.setItem(KEY_UID, this.memCacheUID);
+                localStorage.setItem(KEY_LOGIN, this.memCacheLogin);
+                return new Session(this.memCacheSID, this.memCacheUID);
+            });
+        } else {
+            return new Session(this.memCacheSID, this.memCacheUID);
         }
-        //requires update
-        let sessionPromise = _requestSession(this.fetcher, login, password, client);
-        return sessionPromise.then(raw => {
-            throwFromHTTP(raw);
-            return raw.json();
-        }).then(json => {
-            this.memcache = json.SessionId;
-            this.login = login;
-            localStorage.setItem(KEY_ID, this.memcache);
-            localStorage.setItem(KEY_LOGIN, this.login);
-            return new Session(this.memcache);
-        });
+
 
     }
 
@@ -76,13 +93,14 @@ class SessionRepository {
 
 function _requestSession(fetcher, user, password, client) {
     let cfg = {
-        method: 'GET',
+        method: 'POST',
         headers: {
             'login': user,
             'password': password,
             'client': client,
+            'User-Agent': navigator.userAgent,
         },
         cache: 'no-store'
     };
-    return fetcher.fetchRaw('/session/auth', cfg)
+    return fetcher.fetchRaw('/sessions', cfg)
 }

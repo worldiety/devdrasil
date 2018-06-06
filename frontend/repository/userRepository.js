@@ -1,23 +1,32 @@
 import {Fetcher, throwFromHTTP} from "/wwt/components.js";
 
-export {UserRepository, User, ROLE_ADD_USER, ROLE_LIST_USER}
+export {UserRepository, User}
 
-const ROLE_ADD_USER = "ROLE_ADD_USER";
-const ROLE_LIST_USER = "ROLE_LIST_USER";
 
 class User {
-    constructor(id, properties, plugins, isActive) {
+    constructor(id, isActive) {
         this.id = id;
-        this.properties = properties;
-        this.plugins = plugins;
         this.isActive = isActive;
     }
 
-    hasProperty(propertyName) {
-        if (this.properties == null) {
-            return false;
-        }
-        return propertyName in this.properties;
+}
+
+class UserPermissions {
+    /**
+     *
+     * @param {boolean} listUsers
+     * @param {boolean} createUser
+     * @param {boolean} deleteUser
+     * @param {boolean} updateUser
+     * @param {boolean} getUser
+     */
+    constructor(listUsers, createUser, deleteUser, updateUser, getUser) {
+        this.listUsers = listUsers;
+        this.createUser = createUser;
+        this.deleteUser = deleteUser;
+        this.updateUser = updateUser;
+        this.getUser = getUser;
+
     }
 }
 
@@ -30,17 +39,50 @@ class UserRepository {
 
     /**
      * Returns the user either by getting it from cache or by loading it from the endpoint
-     * @returns {!PromiseLike<User>}
+     * @param {string} id
+     * @returns {PromiseLike<User>}
      */
-    async getUser() {
+    async getUser(id) {
         let session = await this.sessionRepository.getSession();
-        return _requestUser(this.fetcher, session.id).then(raw => {
+        return _requestUser(this.fetcher, session.sid, id).then(raw => {
             throwFromHTTP(raw);
             return raw.json();
         }).then(json => {
-            return new User(json.Id, json.Properties, json.Plugins, json.Active);
+            console.log(json);
+            return new User(json.Id, json.Active);
         });
 
+    }
+
+    /**
+     * Returns the user either by getting it from cache or by loading it from the endpoint
+     * @param {string} id
+     * @returns {PromiseLike<UserPermissions>}
+     */
+    async getUserPermissions(id) {
+        let session = await this.sessionRepository.getSession();
+        return _requestUserPermissions(this.fetcher, session.sid, id).then(raw => {
+            throwFromHTTP(raw);
+            return raw.json();
+        }).then(json => {
+            console.log(json);
+            return new UserPermissions(json.ListUsers, json.CreateUser, json.DeleteUser, json.UpdateUser, json.GetUser);
+        });
+
+    }
+
+    /**
+     *  Returns the user either by getting it from cache or by loading it from the endpoint
+     * @returns {Promise<User>}
+     */
+    async getSessionUser() {
+        let session = await this.sessionRepository.getSession();
+        return _requestUser(this.fetcher, session.sid, session.uid).then(raw => {
+            throwFromHTTP(raw);
+            return raw.json();
+        }).then(json => {
+            return new User(json.Id, json.Active);
+        });
     }
 
     /**
@@ -50,7 +92,7 @@ class UserRepository {
      */
     async getUsers() {
         let session = await this.sessionRepository.getSession();
-        return _requestUsers(this.fetcher, session.id).then(raw => {
+        return _requestUsers(this.fetcher, session.sid).then(raw => {
             throwFromHTTP(raw);
             return raw.json();
         }).then(json => {
@@ -64,24 +106,36 @@ class UserRepository {
     }
 }
 
-function _requestUser(fetcher, id) {
+
+function _requestUser(fetcher, sid, uid) {
     let cfg = {
         method: 'GET',
         headers: {
-            'sid': id,
+            'sid': sid,
         },
         cache: 'no-store'
     };
-    return fetcher.fetchRaw('/users/account', cfg)
+    return fetcher.fetchRaw('/users/' + uid, cfg)
 }
 
-function _requestUsers(fetcher, id) {
+function _requestUsers(fetcher, sid) {
     let cfg = {
         method: 'GET',
         headers: {
-            'sid': id,
+            'sid': sid,
         },
         cache: 'no-store'
     };
-    return fetcher.fetchRaw('/users/all', cfg)
+    return fetcher.fetchRaw('/users', cfg)
+}
+
+function _requestUserPermissions(fetcher, sid, uid) {
+    let cfg = {
+        method: 'GET',
+        headers: {
+            'sid': sid,
+        },
+        cache: 'no-store'
+    };
+    return fetcher.fetchRaw('/users/permissions/' + uid, cfg)
 }

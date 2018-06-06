@@ -70,7 +70,7 @@ func (c *Cursor) Key() (PK, error) {
 }
 
 //reads the entry at the current cursor position and returns the amount of transferred bytes
-func (c *Cursor) Get(dst io.Reader) (int64, error) {
+func (c *Cursor) Get(dst io.Writer) (int64, error) {
 	c.check()
 	err := c.checkPos()
 	if err != nil {
@@ -92,7 +92,7 @@ func (c *Cursor) Get(dst io.Reader) (int64, error) {
 	}
 	defer file.Close()
 
-	n, err := io.Copy(file, dst)
+	n, err := io.Copy(dst,file)
 	c.noteErr(err)
 	return n, err
 }

@@ -12,10 +12,10 @@ import (
 var allowedClients = []string{"web-client-1.0"}
 
 type sessionDTO struct {
-	//base64 encoded session id
+	//hex encoded session id
 	Id db.PK
 
-	//base64 encoded user id
+	//hex encoded user id
 	User db.PK
 }
 
@@ -120,7 +120,7 @@ func (e *EndpointSessions) auth(writer http.ResponseWriter, request *http.Reques
 	client := request.Header.Get("client")
 
 	//try to do something against brute force attacks, see also https://www.owasp.org/index.php/Blocking_Brute_Force_Attacks
-	time.Sleep(1000 * time.Second)
+	time.Sleep(1000 * time.Millisecond)
 
 	//another funny idea is to return a fake session id, after many wrong login attempts
 

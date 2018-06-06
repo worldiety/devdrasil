@@ -3,7 +3,7 @@ import {UISAccounts} from "/frontend/uis-accounts.js";
 import {Application, Icon} from "/wwt/components.js";
 import {UISLogin} from "/frontend/uis-login.js";
 import {SessionRepository} from "/frontend/repository/sessionRepository.js";
-import {ROLE_LIST_USER, UserRepository} from "/frontend/repository/userRepository.js";
+import {UserRepository} from "/frontend/repository/userRepository.js";
 
 class ExampleApp extends Application {
 
@@ -20,7 +20,7 @@ class ExampleApp extends Application {
 
         //add the default bootstrapping entries
         this.getMenuEnrichers().push(drawer => {
-            return this.getUserRepository().getUser().then(user => {
+            return this.getUserRepository().getSessionUser().then(user => {
                 //present logoff, if we are logged in
                 let logoutItem = drawer.addMenuEntry("#" + UISLogin.NAME(), new Icon("exit_to_app"), this.getString("logout"), false);
                 logoutItem.onclick = e => {
@@ -30,10 +30,13 @@ class ExampleApp extends Application {
 
                 };
 
-                if (user.hasProperty(ROLE_LIST_USER)) {
-                    let selected = this.getNavigation().getPendingName() === UISAccounts.NAME();
-                    drawer.addMenuEntry("#" + UISAccounts.NAME(), new Icon("supervisor_account"), this.getString("accounts"), selected);
-                }
+                this.getUserRepository().getUserPermissions(user.id).then(permissions=>{
+                    if (permissions.listUsers) {
+                        let selected = this.getNavigation().getPendingName() === UISAccounts.NAME();
+                        drawer.addMenuEntry("#" + UISAccounts.NAME(), new Icon("supervisor_account"), this.getString("accounts"), selected);
+                    }
+                });
+
 
             });
         });

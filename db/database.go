@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"encoding/hex"
 	"fmt"
-	"encoding/base64"
+	"encoding/json"
 )
 
 const permOwnerOnly = 0700
@@ -36,14 +36,32 @@ func (p PK) IsNIL() bool {
 	return p == NIL
 }
 
-//returns the base64 encoding of PK
+//returns the hex encoding of PK
 func (p PK) String() string {
-	return base64.StdEncoding.EncodeToString(p[:])
+	return hex.EncodeToString(p[:])
 }
 
-//decodes a base64 encoding, as returned by PK.String()
-func ParsePK(base64str string) (PK, error) {
-	tmp, err := base64.StdEncoding.DecodeString(base64str)
+func (p *PK) MarshalJSON() ([]byte, error) {
+	value := hex.EncodeToString(p[:])
+	return json.Marshal(value)
+}
+
+func (p *PK) UnmarshalJSON(data []byte) error {
+	var value string
+	if err := json.Unmarshal(data, &value); err != nil {
+		return err
+	}
+	tmp, err := hex.DecodeString(value)
+	if err != nil {
+		return err
+	}
+	copy(p[:], tmp)
+	return nil
+}
+
+//decodes a hex encoding, as returned by PK.String()
+func ParsePK(hexstr string) (PK, error) {
+	tmp, err := hex.DecodeString(hexstr)
 	if err != nil {
 		return NIL, err
 	}
