@@ -1,5 +1,6 @@
 import {UISDashboard} from "/frontend/uis-dashboard.js";
 import {UISAccounts} from "/frontend/uis-accounts.js";
+import {UISUser} from "/frontend/uis-user.js";
 import {Application, Icon} from "/wwt/components.js";
 import {UISLogin} from "/frontend/uis-login.js";
 import {SessionRepository} from "/frontend/repository/sessionRepository.js";
@@ -14,6 +15,7 @@ class ExampleApp extends Application {
         this.getNavigation().registerUserInterfaceState(UISLogin.NAME(), app => new UISLogin(app));
         this.getNavigation().registerUserInterfaceState(UISDashboard.NAME(), app => new UISDashboard(app));
         this.getNavigation().registerUserInterfaceState(UISAccounts.NAME(), app => new UISAccounts(app));
+        this.getNavigation().registerUserInterfaceState(UISUser.NAME(), app => new UISUser(app));
         this.setLocale("de");
         this.addTranslation("de", "/frontend/values-de/strings.xml");
         this.addTranslation("en", "/frontend/values-en/strings.xml");
@@ -66,7 +68,7 @@ class ExampleApp extends Application {
             //try to navigate directly to the input link, if registered
             let targetName = window.location.hash.substring(1);
             if (this.getNavigation().hasName(targetName)){
-                this.getNavigation().forward(targetName);
+                this.getNavigation().reload();
             }else{
                 this.getNavigation().forward(UISDashboard.NAME());
             }

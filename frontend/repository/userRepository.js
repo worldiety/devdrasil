@@ -4,9 +4,28 @@ export {UserRepository, User}
 
 
 class User {
-    constructor(id, isActive) {
+    /**
+     *
+     * @param id
+     * @param login
+     * @param firstname
+     * @param lastname
+     * @param active
+     * @param avatar
+     * @param {Array<string>} emails
+     * @param {string} company
+     * @param {Array<string>} groups
+     */
+    constructor(id, login, firstname, lastname, active, avatar, emails, company, groups) {
         this.id = id;
-        this.isActive = isActive;
+        this.login = login;
+        this.firstname = firstname;
+        this.lastname = lastname;
+        this.active = active;
+        this.avatar = avatar;
+        this.emails = emails;
+        this.company = company;
+        this.groups = groups;
     }
 
 }
@@ -48,8 +67,7 @@ class UserRepository {
             throwFromHTTP(raw);
             return raw.json();
         }).then(json => {
-            console.log(json);
-            return new User(json.Id, json.Active);
+            return this.userFromJson(json);
         });
 
     }
@@ -65,7 +83,6 @@ class UserRepository {
             throwFromHTTP(raw);
             return raw.json();
         }).then(json => {
-            console.log(json);
             return new UserPermissions(json.ListUsers, json.CreateUser, json.DeleteUser, json.UpdateUser, json.GetUser);
         });
 
@@ -81,7 +98,7 @@ class UserRepository {
             throwFromHTTP(raw);
             return raw.json();
         }).then(json => {
-            return new User(json.Id, json.Active);
+            return this.userFromJson(json);
         });
     }
 
@@ -98,11 +115,20 @@ class UserRepository {
         }).then(json => {
             let users = [];
             for (let user of json.Users) {
-                users.push(new User(user.Id, user.Properties, user.Plugins, user.Active));
+                users.push(this.userFromJson(user));
             }
             return users;
         });
 
+    }
+
+    /**
+     *
+     * @param json
+     * @return User
+     */
+    userFromJson(json) {
+        return new User(json.Id, json.Login, json.Firstname, json.Lastname, json.Active, json.avatar, json.EMailAddresses, json.Company, json.Groups)
     }
 }
 

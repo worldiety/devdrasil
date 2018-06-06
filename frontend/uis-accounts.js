@@ -15,6 +15,7 @@ import {
 } from "/wwt/components.js";
 
 import {DefaultUserInterfaceState, Main} from "/frontend/uis-default.js";
+import {UISUser} from "/frontend/uis-user.js";
 import {User} from "/frontend/repository/userRepository.js";
 
 export {UISAccounts}
@@ -85,18 +86,9 @@ class UserList extends Card {
                 } else {
                     listView.addSeparator();
                 }
-                let tmp = "";
-                for (let key in user.properties) {
-                    if (tmp !== "") {
-                        tmp += ", ";
-                    }
-
-
-                    tmp += key;
-                }
                 let moreMenu = new Menu();
                 moreMenu.add(uis.getString("edit"), _ => {
-                    this.uis.showMessage("bearbeiten");
+                    this.uis.getNavigation().forward(UISUser.NAME(), {"uid": user.id});
                 });
                 moreMenu.add(uis.getString("delete"), _ => {
                     this.delete(user);
@@ -110,7 +102,7 @@ class UserList extends Card {
                 });
 
 
-                let item = new TwoLineLeadingAndTrailingIcon(new Icon("account_circle"), user.id, tmp, more);
+                let item = new TwoLineLeadingAndTrailingIcon(new Icon("account_circle"), user.firstname + " " + user.lastname, user.login, more);
                 listView.add(item);
             }
         });
