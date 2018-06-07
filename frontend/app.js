@@ -64,7 +64,7 @@ class ExampleApp extends Application {
     }
 
     validateSession() {
-        let session = this.getSessionRepository().getSession().then(session => {
+        let session =  this.getUserRepository().getSessionUser().then(user => {
             //try to navigate directly to the input link, if registered
             let targetName = window.location.hash.substring(1);
             if (this.getNavigation().hasName(targetName)){

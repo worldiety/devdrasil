@@ -65,7 +65,7 @@ func (tx *writeTransaction) Put(key PK, src io.Reader) (int64, error) {
 
 	//delete target file
 	err = os.Remove(fname)
-	if !os.IsNotExist(err) {
+	if err != nil && !os.IsNotExist(err) {
 		tx.reader.noteErr(err)
 		return n, err
 	}

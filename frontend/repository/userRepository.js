@@ -64,8 +64,7 @@ class UserRepository {
     async getUser(id) {
         let session = await this.sessionRepository.getSession();
         return _requestUser(this.fetcher, session.sid, id).then(raw => {
-            throwFromHTTP(raw);
-            return raw.json();
+            return throwFromHTTP(raw).then(raw => raw.json());
         }).then(json => {
             return this.userFromJson(json);
         });
@@ -80,8 +79,7 @@ class UserRepository {
     async getUserPermissions(id) {
         let session = await this.sessionRepository.getSession();
         return _requestUserPermissions(this.fetcher, session.sid, id).then(raw => {
-            throwFromHTTP(raw);
-            return raw.json();
+            return throwFromHTTP(raw).then(raw => raw.json());
         }).then(json => {
             return new UserPermissions(json.ListUsers, json.CreateUser, json.DeleteUser, json.UpdateUser, json.GetUser);
         });
@@ -95,8 +93,7 @@ class UserRepository {
     async getSessionUser() {
         let session = await this.sessionRepository.getSession();
         return _requestUser(this.fetcher, session.sid, session.uid).then(raw => {
-            throwFromHTTP(raw);
-            return raw.json();
+            return throwFromHTTP(raw).then(raw => raw.json());
         }).then(json => {
             return this.userFromJson(json);
         });
@@ -105,13 +102,12 @@ class UserRepository {
     /**
      * Returns all available users
      *
-     * @returns {!PromiseLike<[]User>}
+     * @returns {!PromiseLike<Array<User>>}
      */
     async getUsers() {
         let session = await this.sessionRepository.getSession();
         return _requestUsers(this.fetcher, session.sid).then(raw => {
-            throwFromHTTP(raw);
-            return raw.json();
+            return throwFromHTTP(raw).then(raw => raw.json());
         }).then(json => {
             let users = [];
             for (let user of json.Users) {
@@ -123,6 +119,20 @@ class UserRepository {
     }
 
     /**
+     * Updates the given user identified by its id.
+     * @param {User} user
+     * @returns {Promise<User>}
+     */
+    async updateUser(user) {
+        let session = await this.sessionRepository.getSession();
+        return _requestUpdateUser(this.fetcher, session.sid, user).then(raw => {
+            return throwFromHTTP(raw).then(raw => raw.json());
+        }).then(json => {
+            return this.userFromJson(json);
+        })
+    }
+
+    /**
      *
      * @param json
      * @return User
@@ -130,6 +140,26 @@ class UserRepository {
     userFromJson(json) {
         return new User(json.Id, json.Login, json.Firstname, json.Lastname, json.Active, json.avatar, json.EMailAddresses, json.Company, json.Groups)
     }
+}
+
+/**
+ *
+ * @param {Fetcher} fetcher
+ * @param {string} sid
+ * @param {User} user
+ * @returns {Promise<any>}
+ * @private
+ */
+function _requestUpdateUser(fetcher, sid, user) {
+    let cfg = {
+        method: 'PUT',
+        headers: {
+            'sid': sid,
+        },
+        body: JSON.stringify(user),
+        cache: 'no-store'
+    };
+    return fetcher.fetchRaw('/users/' + user.id, cfg)
 }
 
 

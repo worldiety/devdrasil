@@ -21,4 +21,10 @@
     <string name="delete">Löschen</string>
     <string name="delete_user_x">Möchtest du den Nutzer '%s' wirklichen löschen?</string>
     <string name="cancel">Abbrechen</string>
+    <string name="firstname">Vorname</string>
+    <string name="lastname">Nachname</string>
+    <string name="save">Speichern</string>
+    <string name="name_not_unique">Der Bezeichner ist bereits vergeben.</string>
+    <string name="login_too_short">Login muss mind. 3 Zeichen enthalten.</string>
+    <string name="field_is_empty">Das Feld darf nicht leer sein.</string>
 </resources>

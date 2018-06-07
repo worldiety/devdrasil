@@ -70,8 +70,7 @@ class SessionRepository {
             //requires update
             let sessionPromise = _requestSession(this.fetcher, login, password, client);
             return sessionPromise.then(raw => {
-                throwFromHTTP(raw);
-                return raw.json();
+                return throwFromHTTP(raw).then(raw => raw.json());
             }).then(json => {
                 this.memCacheSID = json.Id;
                 this.memCacheLogin = login;

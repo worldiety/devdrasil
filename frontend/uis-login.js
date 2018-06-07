@@ -4,8 +4,10 @@ import {
     H6,
     LayoutGrid,
     PasswordField,
+    PermissionDeniedException,
     RaisedButton,
     TextField,
+    TextFieldRow,
     UserInterfaceState
 } from "/wwt/components.js";
 
@@ -39,13 +41,17 @@ class UISLogin extends DefaultUserInterfaceState {
         title.setText(this.getString("login_title", appName));
         card.add(title);
 
+
         let username = new TextField();
         username.setCaption(this.getString("username"));
+        username.fillParentWidth();
         card.add(username);
 
         let password = new PasswordField();
         password.setCaption(this.getString("password"));
+        password.fillParentWidth();
         card.add(password);
+
 
         let btnLogin = new RaisedButton();
         btnLogin.getElement().style.maxWidth = "5rem";
@@ -55,11 +61,21 @@ class UISLogin extends DefaultUserInterfaceState {
         card.add(btnLogin);
 
         btnLogin.setOnClick(e => {
+            username.setHelperText("");
+            password.setHelperText("");
+
             this.getApplication().getSessionRepository().deleteSession();
             this.getApplication().getSessionRepository().getSession(username.getText(), password.getText(), "web-client-1.0").then(session => {
                     this.getNavigation().forward(UISDashboard.NAME());
                 }
-            ).catch(err => this.handleDefaultError(err));
+            ).catch(err => {
+                if (err instanceof PermissionDeniedException) {
+                    username.setHelperText(this.getString("login_failed"), true);
+                    password.setHelperText(this.getString("login_failed"), true);
+                } else {
+                    this.handleDefaultError(err)
+                }
+            });
         });
 
         this.setContentWithoutToolbar(card);

@@ -1,11 +1,16 @@
 import {
     Box,
     Card,
+    FlatButton,
     H6,
+    HPadding,
     LayoutGrid,
+    LRLayout,
+    NotUniqueException,
     PasswordField,
     RaisedButton,
     TextField,
+    TextFieldRow,
     UserInterfaceState
 } from "/wwt/components.js";
 
@@ -33,31 +38,94 @@ class UISUser extends DefaultUserInterfaceState {
 
         this.getApplication().getUserRepository().getUser(uid).then(user => {
 
-            card.add(new H6("Sie betrachten jetzt "+user.firstname));
+            this.topBar.setTitle(user.firstname + " " + user.lastname);
 
-            let username = new TextField();
-            username.setCaption(this.getString("username"));
-            card.add(username);
+            let row = new TextFieldRow();
 
-            let password = new PasswordField();
-            password.setCaption(this.getString("password"));
-            card.add(password);
+            let login = new TextField();
+            login.setCaption(this.getString("login"));
+            login.setText(user.login);
+            row.add(login);
+
+
+            let firstname = new TextField();
+            firstname.setCaption(this.getString("firstname"));
+            firstname.setText(user.firstname);
+            row.add(firstname);
+
+            let lastname = new TextField();
+            lastname.setCaption(this.getString("lastname"));
+            lastname.setText(user.lastname);
+            row.add(lastname);
+
+            card.add(row);
+
+            let btnRow = new LRLayout();
+
+
+            let btnCancel = new FlatButton();
+            btnCancel.setText(this.getString("cancel"));
+            btnCancel.setOnClick(_ => window.history.back());
+            btnRow.addRight(btnCancel);
+
+            btnRow.addRight(new HPadding());
 
             let btnLogin = new RaisedButton();
-            btnLogin.getElement().style.maxWidth = "5rem";
-            btnLogin.getElement().style.marginLeft = "auto";
-            btnLogin.getElement().style.marginRight = "auto";
-            btnLogin.setText(this.getString("login"));
-            card.add(btnLogin);
+            btnLogin.setText(this.getString("save"));
+            btnRow.addRight(btnLogin);
+
+            card.add(btnRow);
 
             btnLogin.setOnClick(e => {
-                this.getApplication().getSessionRepository().deleteSession();
-                this.getApplication().getSessionRepository().getSession(username.getText(), password.getText(), "web-client-1.0").then(session => {
-                        this.getNavigation().forward(UISDashboard.NAME());
+                //clear the tips
+                login.setHelperText();
+                firstname.setHelperText();
+                lastname.setHelperText();
+
+                //quick evaluation
+                let hasError = false;
+                if (login.getText().length < 3) {
+                    login.setHelperText(this.getString("login_too_short"), true);
+                    hasError = true;
+                }
+
+                if (firstname.getText().trim().length === 0) {
+                    firstname.setHelperText(this.getString("field_is_empty"), true);
+                    hasError = true;
+                }
+
+                if (lastname.getText().trim().length === 0) {
+                    lastname.setHelperText(this.getString("field_is_empty"), true);
+                    hasError = true;
+                }
+
+                if (hasError) {
+                    return
+                }
+
+
+                user.login = login.getText();
+                user.firstname = firstname.getText();
+                user.lastname = lastname.getText();
+                this.getApplication().getUserRepository().updateUser(user).then(updatedUser => {
+                    //login case may have been rewritten
+                    user.login = updatedUser.login;
+
+                    //we succeeded
+                    window.history.back()
+
+                }).catch(err => {
+                    if (err instanceof NotUniqueException) {
+                        login.setHelperText(this.getString("name_not_unique"), true);
+                    } else {
+                        this.handleDefaultError(err);
                     }
-                ).catch(err => this.handleDefaultError(err));
+
+                });
+
             });
-        }).catch(err=>{
+        }).catch(err => {
+
             this.handleDefaultError(err)
         });
 

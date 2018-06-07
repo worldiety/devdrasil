@@ -151,7 +151,7 @@ func (r *Users) Update(user *User) error {
 
 	//find login
 	for _, usr := range res {
-		if usr.Login == user.Login {
+		if usr.Login == user.Login && usr.Id != user.Id {
 			return &db.NotUnique{user.Login}
 		}
 	}
