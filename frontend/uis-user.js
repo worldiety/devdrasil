@@ -1,6 +1,8 @@
 import {
     Box,
     Card,
+    CenterBox,
+    CircularProgressIndicator,
     FlatButton,
     H6,
     HPadding,
@@ -11,7 +13,9 @@ import {
     RaisedButton,
     TextField,
     TextFieldRow,
-    UserInterfaceState
+    UserInterfaceState,
+    fadeIn,
+    fadeOut
 } from "/wwt/components.js";
 
 import {DefaultUserInterfaceState, Main} from "/frontend/uis-default.js";
@@ -33,11 +37,10 @@ class UISUser extends DefaultUserInterfaceState {
         super.apply();
 
 
-        let card = new Main();
         let uid = this.getNavigation().getSearchParam("uid");
 
         this.getApplication().getUserRepository().getUser(uid).then(user => {
-
+            let card = new Main();
             this.topBar.setTitle(user.firstname + " " + user.lastname);
 
             let row = new TextFieldRow();
@@ -84,7 +87,7 @@ class UISUser extends DefaultUserInterfaceState {
 
                 //quick evaluation
                 let hasError = false;
-                if (login.getText().length < 3) {
+                if (login.getText().trim().length < 3) {
                     login.setHelperText(this.getString("login_too_short"), true);
                     hasError = true;
                 }
@@ -104,9 +107,9 @@ class UISUser extends DefaultUserInterfaceState {
                 }
 
 
-                user.login = login.getText();
-                user.firstname = firstname.getText();
-                user.lastname = lastname.getText();
+                user.login = login.getText().trim();
+                user.firstname = firstname.getText().trim();
+                user.lastname = lastname.getText().trim();
                 this.getApplication().getUserRepository().updateUser(user).then(updatedUser => {
                     //login case may have been rewritten
                     user.login = updatedUser.login;
@@ -124,13 +127,19 @@ class UISUser extends DefaultUserInterfaceState {
                 });
 
             });
+
+            this.setContent(card);
+
         }).catch(err => {
 
             this.handleDefaultError(err)
         });
 
 
-        this.setContent(card);
+        let box = new CenterBox();
+        let spinner = new CircularProgressIndicator();
+        box.add(spinner);
+        this.setContent(box);
     }
 
 }

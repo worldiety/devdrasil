@@ -27,4 +27,6 @@
     <string name="name_not_unique">Der Bezeichner ist bereits vergeben.</string>
     <string name="login_too_short">Login muss mind. 3 Zeichen enthalten.</string>
     <string name="field_is_empty">Das Feld darf nicht leer sein.</string>
+    <string name="cannot_delete_root">Du kannst den Super-User nicht löschen.</string>
+    <string name="new_user">Nutzer hinzufügen</string>
 </resources>

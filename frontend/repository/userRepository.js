@@ -134,6 +134,32 @@ class UserRepository {
 
     /**
      *
+     * @param {string} uid
+     * @returns {Promise<void>}
+     */
+    async deleteUser(uid) {
+        let session = await this.sessionRepository.getSession();
+        return _requestDeleteUser(this.fetcher, session.sid, uid).then(raw => {
+            return throwFromHTTP(raw);
+        });
+    }
+
+    /**
+     * Inserts a new user
+     * @param {User}user
+     * @returns {PromiseLike<User>}
+     */
+    async createUser(user) {
+        let session = await this.sessionRepository.getSession();
+        return _requestCreateUser(this.fetcher, session.sid, user).then(raw => {
+            return throwFromHTTP(raw).then(raw => raw.json());
+        }).then(json => {
+            return this.userFromJson(json);
+        })
+    }
+
+    /**
+     *
      * @param json
      * @return User
      */
@@ -194,4 +220,27 @@ function _requestUserPermissions(fetcher, sid, uid) {
         cache: 'no-store'
     };
     return fetcher.fetchRaw('/users/permissions/' + uid, cfg)
+}
+
+function _requestDeleteUser(fetcher, sid, uid) {
+    let cfg = {
+        method: 'DELETE',
+        headers: {
+            'sid': sid,
+        },
+        cache: 'no-store'
+    };
+    return fetcher.fetchRaw('/users/' + uid, cfg)
+}
+
+function _requestCreateUser(fetcher, sid, user) {
+    let cfg = {
+        method: 'POST',
+        headers: {
+            'sid': sid,
+        },
+        cache: 'no-store',
+        body: JSON.stringify(user),
+    };
+    return fetcher.fetchRaw('/users', cfg)
 }

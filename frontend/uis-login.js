@@ -8,7 +8,7 @@ import {
     RaisedButton,
     TextField,
     TextFieldRow,
-    UserInterfaceState
+    UserInterfaceState,
 } from "/wwt/components.js";
 
 import {DefaultUserInterfaceState} from "/frontend/uis-default.js";

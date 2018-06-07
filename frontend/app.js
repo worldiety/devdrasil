@@ -1,6 +1,7 @@
 import {UISDashboard} from "/frontend/uis-dashboard.js";
 import {UISAccounts} from "/frontend/uis-accounts.js";
 import {UISUser} from "/frontend/uis-user.js";
+import {UISAddUser} from "/frontend/uis-user-add.js";
 import {Application, Icon} from "/wwt/components.js";
 import {UISLogin} from "/frontend/uis-login.js";
 import {SessionRepository} from "/frontend/repository/sessionRepository.js";
@@ -16,6 +17,7 @@ class ExampleApp extends Application {
         this.getNavigation().registerUserInterfaceState(UISDashboard.NAME(), app => new UISDashboard(app));
         this.getNavigation().registerUserInterfaceState(UISAccounts.NAME(), app => new UISAccounts(app));
         this.getNavigation().registerUserInterfaceState(UISUser.NAME(), app => new UISUser(app));
+        this.getNavigation().registerUserInterfaceState(UISAddUser.NAME(), app => new UISAddUser(app));
         this.setLocale("de");
         this.addTranslation("de", "/frontend/values-de/strings.xml");
         this.addTranslation("en", "/frontend/values-en/strings.xml");
@@ -32,7 +34,7 @@ class ExampleApp extends Application {
 
                 };
 
-                this.getUserRepository().getUserPermissions(user.id).then(permissions=>{
+                this.getUserRepository().getUserPermissions(user.id).then(permissions => {
                     if (permissions.listUsers) {
                         let selected = this.getNavigation().getPendingName() === UISAccounts.NAME();
                         drawer.addMenuEntry("#" + UISAccounts.NAME(), new Icon("supervisor_account"), this.getString("accounts"), selected);
@@ -64,12 +66,12 @@ class ExampleApp extends Application {
     }
 
     validateSession() {
-        let session =  this.getUserRepository().getSessionUser().then(user => {
+        let session = this.getUserRepository().getSessionUser().then(user => {
             //try to navigate directly to the input link, if registered
             let targetName = window.location.hash.substring(1);
-            if (this.getNavigation().hasName(targetName)){
+            if (this.getNavigation().hasName(targetName)) {
                 this.getNavigation().reload();
-            }else{
+            } else {
                 this.getNavigation().forward(UISDashboard.NAME());
             }
         }).catch(err => {

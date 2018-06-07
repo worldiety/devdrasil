@@ -3,6 +3,7 @@ import {
     Body1,
     Button,
     Card,
+    CircularProgressIndicator,
     Dialog,
     H3,
     Icon,
@@ -17,6 +18,7 @@ import {
 import {DefaultUserInterfaceState, Main} from "/frontend/uis-default.js";
 import {UISUser} from "/frontend/uis-user.js";
 import {User} from "/frontend/repository/userRepository.js";
+import {UISAddUser} from "/frontend/uis-user-add.js";
 
 export {UISAccounts}
 
@@ -64,21 +66,32 @@ class UserList extends Card {
         this.uis = uis;
 
         this.getElement().style.padding = "0";
+
+        this.refresh();
+    }
+
+    refresh() {
+        this.removeAll();
         let listView = new ListView();
 
         let addUserItem = new LRLayout();
-        addUserItem.addLeft(new Span(uis.getString("your_users")));
+        addUserItem.addLeft(new Span(this.uis.getString("your_users")));
         let btnAddUser = new Button();
-        btnAddUser.setText(uis.getString("add"));
+        btnAddUser.setText(this.uis.getString("add"));
         btnAddUser.setOnClick(e => {
-            this.uis.showMessage("add user");
+            this.uis.getNavigation().forward(UISAddUser.NAME());
         });
         addUserItem.addRight(btnAddUser);
-        listView.add(addUserItem);
 
+
+        let spinner = new CircularProgressIndicator();
+        spinner.getElement().style.margin = "auto";
+        listView.add(spinner);
 
         this.add(listView);
         this.uis.getApplication().getUserRepository().getUsers().then(users => {
+            listView.removeAll();
+            listView.add(addUserItem);
             let first = true;
             for (let user of users) {
                 if (first) {
@@ -87,10 +100,10 @@ class UserList extends Card {
                     listView.addSeparator();
                 }
                 let moreMenu = new Menu();
-                moreMenu.add(uis.getString("edit"), _ => {
+                moreMenu.add(this.uis.getString("edit"), _ => {
                     this.uis.getNavigation().forward(UISUser.NAME(), {"uid": user.id});
                 });
-                moreMenu.add(uis.getString("delete"), _ => {
+                moreMenu.add(this.uis.getString("delete"), _ => {
                     this.delete(user);
 
                 });
@@ -114,13 +127,14 @@ class UserList extends Card {
      */
     delete(user) {
         let dlg = new Dialog();
-        dlg.add(new Body1(this.uis.getString("delete_user_x", user.id)));
+        dlg.add(new Body1(this.uis.getString("delete_user_x", user.firstname + " " + user.lastname)));
         let no = new Button(this.uis.getString("cancel"));
         no.setOnClick(_ => {
             dlg.close();
         });
         let yes = new Button(this.uis.getString("delete"));
         yes.setOnClick(_ => {
+            this.uis.getApplication().getUserRepository().deleteUser(user.id).then(_ => this.refresh()).catch(err => this.uis.handleDefaultError(err));
             dlg.close();
         });
         dlg.addFooter(no);

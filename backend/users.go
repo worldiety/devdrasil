@@ -353,7 +353,12 @@ func (e *EndpointUsers) addUser(writer http.ResponseWriter, request *http.Reques
 //  @Return 500 (for any other error)
 func (e *EndpointUsers) deleteUser(writer http.ResponseWriter, request *http.Request, userId db.PK) {
 	_, usr := e.validate(writer, request, user.DELETE_USER)
-	if usr != nil {
+	if usr == nil {
+		return
+	}
+
+	if userId == user.ADMIN {
+		http.Error(writer, "you cannot delete the super user", http.StatusForbidden)
 		return
 	}
 

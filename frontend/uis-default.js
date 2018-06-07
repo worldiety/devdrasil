@@ -28,7 +28,11 @@ class DefaultUserInterfaceState extends UserInterfaceState {
 
         //each app should have a drawer
         this.drawer = new Drawer();
-        this.drawer.setCaption("drawer caption");
+
+        this.getApplication().getUserRepository().getSessionUser().then(user => {
+            this.drawer.setCaption(user.firstname + " " + user.lastname);
+        });
+
 
         this.topBar.setDrawer(this.drawer);
     }
@@ -42,8 +46,14 @@ class DefaultUserInterfaceState extends UserInterfaceState {
     }
 
     handleDefaultError(err) {
+        if (err.message.indexOf("delete the super user") >= 0) {
+            this.showMessage(this.getString("cannot_delete_root"));
+            return;
+        }
         if (err instanceof PermissionDeniedException) {
+
             this.showMessage(this.getString("login_failed"));
+
         } else {
             this.showMessage(err.toString());
         }
