@@ -9,6 +9,7 @@ import {
     TextField,
     TextFieldRow,
     UserInterfaceState,
+    CircularProgressIndicator
 } from "/wwt/components.js";
 
 import {DefaultUserInterfaceState} from "/frontend/uis-default.js";
@@ -58,9 +59,18 @@ class UISLogin extends DefaultUserInterfaceState {
         btnLogin.getElement().style.marginLeft = "auto";
         btnLogin.getElement().style.marginRight = "auto";
         btnLogin.setText(this.getString("login"));
+
+        let spinner = new CircularProgressIndicator();
+        spinner.getElement().style.marginLeft = "auto";
+        spinner.getElement().style.marginRight = "auto";
+        spinner.getElement().style.display = "none";
+        card.add(spinner);
+
         card.add(btnLogin);
 
         btnLogin.setOnClick(e => {
+            spinner.getElement().style.display = "block";
+            btnLogin.getElement().style.display = "none";
             username.setHelperText("");
             password.setHelperText("");
 
@@ -69,6 +79,8 @@ class UISLogin extends DefaultUserInterfaceState {
                     this.getNavigation().forward(UISDashboard.NAME());
                 }
             ).catch(err => {
+                btnLogin.getElement().style.display = "";
+                spinner.getElement().style.display = "none";
                 if (err instanceof PermissionDeniedException) {
                     username.setHelperText(this.getString("login_failed"), true);
                     password.setHelperText(this.getString("login_failed"), true);

@@ -6,6 +6,7 @@ import (
 	"github.com/worldiety/devdrasil/backend/session"
 	"github.com/worldiety/devdrasil/db"
 	"strings"
+	"unicode"
 )
 
 type userListDTO struct {
@@ -329,6 +330,11 @@ func (e *EndpointUsers) addUser(writer http.ResponseWriter, request *http.Reques
 		return
 	}
 
+	if dto.Password == nil || !isGoodPassword(*dto.Password) {
+		http.Error(writer, "password to weak", http.StatusBadRequest)
+		return
+	}
+
 	newUser := &user.User{}
 	e.updateUserFields(newUser, dto)
 
@@ -343,6 +349,28 @@ func (e *EndpointUsers) addUser(writer http.ResponseWriter, request *http.Reques
 	}
 
 	WriteJSONBody(writer, newUserDTO(newUser))
+}
+
+func isGoodPassword(s string) bool {
+	var sevenOrMore, number, upper, special bool
+	letters := 0
+	for _, s := range s {
+		switch {
+		case unicode.IsNumber(s):
+			number = true
+		case unicode.IsUpper(s):
+			upper = true
+			letters++
+		case unicode.IsPunct(s) || unicode.IsSymbol(s):
+			special = true
+		case unicode.IsLetter(s) || s == ' ':
+			letters++
+		default:
+			//return false, false, false, false
+		}
+	}
+	sevenOrMore = letters >= 7
+	return sevenOrMore && number && upper && special
 }
 
 // A user can delete another user, if he has the permission

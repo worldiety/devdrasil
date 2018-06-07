@@ -3,6 +3,8 @@ import {
     Card,
     CenterBox,
     CircularProgressIndicator,
+    fadeIn,
+    fadeOut,
     FlatButton,
     H6,
     HPadding,
@@ -13,9 +15,7 @@ import {
     RaisedButton,
     TextField,
     TextFieldRow,
-    UserInterfaceState,
-    fadeIn,
-    fadeOut
+    UserInterfaceState
 } from "/wwt/components.js";
 
 import {DefaultUserInterfaceState, Main} from "/frontend/uis-default.js";
@@ -77,13 +77,33 @@ class UISUser extends DefaultUserInterfaceState {
             btnLogin.setText(this.getString("save"));
             btnRow.addRight(btnLogin);
 
-            card.add(btnRow);
+
+            let row2 = new TextFieldRow();
+
+            let pwd1 = new PasswordField();
+            pwd1.setCaption(this.getString("password"));
+            pwd1.setText(user.password);
+            pwd1.setAutoComplete("new-password");
+            row2.add(pwd1);
+
+
+            let pwd2 = new PasswordField();
+            pwd2.setCaption(this.getString("password_repeat"));
+            pwd2.setText(user.password);
+            pwd2.setAutoComplete("new-password");
+            row2.add(pwd2);
+
+            card.add(row2);
+
 
             btnLogin.setOnClick(e => {
                 //clear the tips
                 login.setHelperText();
                 firstname.setHelperText();
                 lastname.setHelperText();
+                pwd1.setHelperText();
+                pwd2.setHelperText();
+
 
                 //quick evaluation
                 let hasError = false;
@@ -102,6 +122,17 @@ class UISUser extends DefaultUserInterfaceState {
                     hasError = true;
                 }
 
+                //only set pwd if not empty, otherwise keep the old one
+                if (pwd1.getText().trim().length !== 0 || pwd2.getText().trim().length !== 0) {
+
+                    if (pwd1.getText() !== pwd2.getText()) {
+                        pwd1.setHelperText(this.getString("passwords_unmatch"), true);
+                        pwd2.setHelperText(this.getString("passwords_unmatch"), true);
+                        hasError = true;
+                    }
+                }
+
+
                 if (hasError) {
                     return
                 }
@@ -110,6 +141,7 @@ class UISUser extends DefaultUserInterfaceState {
                 user.login = login.getText().trim();
                 user.firstname = firstname.getText().trim();
                 user.lastname = lastname.getText().trim();
+                user.password = pwd1.getText().trim();
                 this.getApplication().getUserRepository().updateUser(user).then(updatedUser => {
                     //login case may have been rewritten
                     user.login = updatedUser.login;
@@ -128,6 +160,7 @@ class UISUser extends DefaultUserInterfaceState {
 
             });
 
+            card.add(btnRow);
             this.setContent(card);
 
         }).catch(err => {

@@ -29,4 +29,8 @@
     <string name="field_is_empty">Das Feld darf nicht leer sein.</string>
     <string name="cannot_delete_root">Du kannst den Super-User nicht löschen.</string>
     <string name="new_user">Nutzer hinzufügen</string>
+    <string name="password_weak">Das Kennwort ist zu schwach. Es muss mindestens aus 7 Zeichen, Groß- und Kleinbuchstaben sowie einem Sonderzeichen bestehen.</string>
+    <string name="password">Kennwort</string>
+    <string name="password_repeat">Kennwort wiederholen</string>
+    <string name="passwords_unmatch">Die Kennwörter stimmen nicht überein.</string>
 </resources>

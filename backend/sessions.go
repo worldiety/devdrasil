@@ -161,7 +161,7 @@ func (e *EndpointSessions) auth(writer http.ResponseWriter, request *http.Reques
 
 	if err != nil {
 		if db.IsEntityNotFound(err) {
-			http.Error(writer, "user unkown", http.StatusForbidden)
+			http.Error(writer, "credentials invalid", http.StatusForbidden)
 		} else {
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 		}
@@ -170,7 +170,12 @@ func (e *EndpointSessions) auth(writer http.ResponseWriter, request *http.Reques
 	}
 
 	if !usr.Active {
-		http.Error(writer, "user is inactive", http.StatusForbidden)
+		http.Error(writer, "credentials invalid", http.StatusForbidden)
+		return
+	}
+
+	if !usr.PasswordEquals(pwd){
+		http.Error(writer, "credentials invalid", http.StatusForbidden)
 		return
 	}
 

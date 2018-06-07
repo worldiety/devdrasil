@@ -50,6 +50,8 @@ class DefaultUserInterfaceState extends UserInterfaceState {
             this.showMessage(this.getString("cannot_delete_root"));
             return;
         }
+
+
         if (err instanceof PermissionDeniedException) {
 
             this.showMessage(this.getString("login_failed"));

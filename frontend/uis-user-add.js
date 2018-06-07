@@ -38,9 +38,6 @@ class UISAddUser extends DefaultUserInterfaceState {
         super.apply();
 
         let user = new User();
-        user.login = "";
-        user.firstname = "";
-        user.lastname = "";
 
         let card = new Main();
         this.topBar.setTitle(this.getString("new_user"));
@@ -54,16 +51,36 @@ class UISAddUser extends DefaultUserInterfaceState {
 
 
         let firstname = new TextField();
+        firstname.setAutoComplete("new-password");
         firstname.setCaption(this.getString("firstname"));
         firstname.setText(user.firstname);
         row.add(firstname);
 
         let lastname = new TextField();
         lastname.setCaption(this.getString("lastname"));
+        lastname.setAutoComplete("new-password");
         lastname.setText(user.lastname);
         row.add(lastname);
 
         card.add(row);
+
+
+        let row2 = new TextFieldRow();
+
+        let pwd1 = new PasswordField();
+        pwd1.setCaption(this.getString("password"));
+        pwd1.setText(user.password);
+        pwd1.setAutoComplete("new-password");
+        row2.add(pwd1);
+
+
+        let pwd2 = new PasswordField();
+        pwd2.setCaption(this.getString("password_repeat"));
+        pwd2.setText(user.password);
+        pwd2.setAutoComplete("new-password");
+        row2.add(pwd2);
+
+        card.add(row2);
 
         let btnRow = new LRLayout();
 
@@ -79,13 +96,14 @@ class UISAddUser extends DefaultUserInterfaceState {
         btnLogin.setText(this.getString("add"));
         btnRow.addRight(btnLogin);
 
-        card.add(btnRow);
 
         btnLogin.setOnClick(e => {
             //clear the tips
             login.setHelperText();
             firstname.setHelperText();
             lastname.setHelperText();
+            pwd1.setHelperText();
+            pwd2.setHelperText();
 
             //quick evaluation
             let hasError = false;
@@ -104,6 +122,22 @@ class UISAddUser extends DefaultUserInterfaceState {
                 hasError = true;
             }
 
+            if (pwd1.getText().trim().length === 0) {
+                pwd1.setHelperText(this.getString("field_is_empty"), true);
+                hasError = true;
+            }
+
+            if (pwd2.getText().trim().length === 0) {
+                pwd2.setHelperText(this.getString("field_is_empty"), true);
+                hasError = true;
+            }
+
+            if (pwd1.getText() !== pwd2.getText()) {
+                pwd1.setHelperText(this.getString("passwords_unmatch"), true);
+                pwd2.setHelperText(this.getString("passwords_unmatch"), true);
+                hasError = true;
+            }
+
             if (hasError) {
                 return
             }
@@ -112,18 +146,30 @@ class UISAddUser extends DefaultUserInterfaceState {
             user.login = login.getText().trim();
             user.firstname = firstname.getText().trim();
             user.lastname = lastname.getText().trim();
+            user.password = pwd1.getText().trim();
             this.getApplication().getUserRepository().createUser(user).then(updatedUser => {
                 window.history.back()
             }).catch(err => {
                 if (err instanceof NotUniqueException) {
                     login.setHelperText(this.getString("name_not_unique"), true);
                 } else {
-                    this.handleDefaultError(err);
+
+                    if (err.message.indexOf("password to weak") >= 0) {
+                        pwd1.setHelperText(this.getString("password_weak"), true);
+                        pwd2.setHelperText(this.getString("password_weak"), true);
+                        return;
+                    } else {
+                        this.handleDefaultError(err);
+                    }
+
                 }
 
             });
 
         });
+
+
+        card.add(btnRow);
 
         this.setContent(card);
     }

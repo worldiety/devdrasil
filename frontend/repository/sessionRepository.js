@@ -44,7 +44,7 @@ class SessionRepository {
     /**
      * Removes the session
      */
-    deleteSession() {
+    async deleteSession() {
         localStorage.removeItem(KEY_LOGIN);
         localStorage.removeItem(KEY_UID);
         localStorage.removeItem(KEY_SID);

@@ -6,17 +6,17 @@ export {UserRepository, User}
 class User {
     /**
      *
-     * @param id
-     * @param login
-     * @param firstname
-     * @param lastname
-     * @param active
-     * @param avatar
+     * @param {string} id
+     * @param {string} login
+     * @param {string} firstname
+     * @param {string} lastname
+     * @param {boolean} active
+     * @param {string} avatar
      * @param {Array<string>} emails
      * @param {string} company
      * @param {Array<string>} groups
      */
-    constructor(id, login, firstname, lastname, active, avatar, emails, company, groups) {
+    constructor(id = "", login = "", firstname = "", lastname = "", active = true, avatar = "", emails = [], company = "", groups = []) {
         this.id = id;
         this.login = login;
         this.firstname = firstname;
@@ -26,7 +26,9 @@ class User {
         this.emails = emails;
         this.company = company;
         this.groups = groups;
+        this.password = "";
     }
+
 
 }
 
