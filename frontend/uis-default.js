@@ -46,6 +46,7 @@ class DefaultUserInterfaceState extends UserInterfaceState {
     }
 
     handleDefaultError(err) {
+        console.log(err);
         if (err.message.indexOf("delete the super user") >= 0) {
             this.showMessage(this.getString("cannot_delete_root"));
             return;

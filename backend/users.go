@@ -195,6 +195,11 @@ func (e *EndpointUsers) updateUser(writer http.ResponseWriter, request *http.Req
 		userToUpdate = otherUser
 	}
 
+	if dto.Password == nil || !isGoodPassword(*dto.Password) {
+		http.Error(writer, "password to weak", http.StatusBadRequest)
+		return
+	}
+
 	//actually transfer affected fields
 	e.updateUserFields(userToUpdate, dto)
 
