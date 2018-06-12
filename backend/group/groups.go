@@ -2,6 +2,7 @@ package group
 
 import (
 	"github.com/worldiety/devdrasil/db"
+	"strings"
 )
 
 const TABLE_GROUP = "group"
@@ -45,8 +46,9 @@ func (r *Groups) Add(group *Group) error {
 		return err
 	}
 	//ensure unique name
-	for _, group := range groups {
-		if group.Name == group.Name {
+	myLowerCaseName := strings.ToLower(group.Name)
+	for _, grp := range groups {
+		if strings.ToLower(grp.Name) == myLowerCaseName {
 			return &db.NotUnique{group.Name}
 		}
 	}
@@ -54,6 +56,28 @@ func (r *Groups) Add(group *Group) error {
 	group.Id = tx.NextKey()
 	json := db.NewJSONDecorator(tx)
 	return json.Put(group)
+}
+
+func (r *Groups) Update(group *Group) error {
+	tx := r.db.Partition(TABLE_GROUP).Begin(true)
+	defer tx.Commit()
+
+	groups, err := r.List()
+	if err != nil {
+		return err
+	}
+
+	//ensure unique name
+	myLowerCaseName := strings.ToLower(group.Name)
+
+	//find other
+	for _, grp := range groups {
+		if strings.ToLower(grp.Name) == myLowerCaseName && group.Id != grp.Id {
+			return &db.NotUnique{group.Name}
+		}
+	}
+	//update user
+	return r.crud.Update(TABLE_GROUP, group)
 }
 
 func (r *Groups) Delete(id db.PK) error {

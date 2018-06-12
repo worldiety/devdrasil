@@ -50,6 +50,26 @@ type User struct {
 	Groups []db.PK
 }
 
+//removes the group and returns true if it has been actually removed
+func (u *User) RemoveGroup(id db.PK) bool {
+	for i, gid := range u.Groups {
+		if gid == id {
+			u.Groups = append(u.Groups[:i], u.Groups[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
+func (u *User) HasGroup(id db.PK) bool {
+	for _, gid := range u.Groups {
+		if gid == id {
+			return true
+		}
+	}
+	return false
+}
+
 //Sets the password hash by calculating a bcrypt hash
 func (u *User) SetPassword(pwd string) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.DefaultCost)
@@ -121,7 +141,6 @@ func (r *Users) Add(user *User) error {
 	if err != nil {
 		return err
 	}
-
 
 	//rewrite login to be case insensitive
 	user.Login = strings.ToLower(user.Login)

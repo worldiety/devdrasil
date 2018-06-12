@@ -15,48 +15,12 @@ import {
     UserInterfaceState
 } from "/wwt/components.js";
 
-import {DefaultUserInterfaceState, Main} from "/frontend/uis-default.js";
-import {UISUser} from "/frontend/uis-user.js";
-import {User} from "/frontend/repository/userRepository.js";
-import {UISAddUser} from "/frontend/uis-user-add.js";
+import {UISEditUser} from "./UISEditUser.js";
+import {UISAddUser} from "./UISAddUser.js";
 
-export {UISAccounts}
+export {ViewUserList}
 
-class UISAccounts extends DefaultUserInterfaceState {
-
-    static NAME() {
-        return "accounts";
-    }
-
-    constructor(app) {
-        super(app);
-    }
-
-    apply() {
-        super.apply();
-        this.getTopBar().setTitle(this.getString("accounts"));
-
-        let box = new Main(false);
-
-        box.add(new Body1(this.getString("manage_groups_hint")));
-        let card = new Card();
-        box.add(card);
-
-        box.add(new Body1(this.getString("manage_users_hint")));
-
-        let userList = new UserList(this);
-        box.add(userList);
-
-
-        this.setContent(box);
-
-    }
-
-
-}
-
-
-class UserList extends Card {
+class ViewUserList extends Card {
     /**
      *
      * @param {DefaultUserInterfaceState} uis
@@ -89,7 +53,7 @@ class UserList extends Card {
         listView.add(spinner);
 
         this.add(listView);
-        this.uis.getApplication().getUserRepository().getUsers().then(users => {
+        this.uis.getApplication().getUserRepository().list().then(users => {
             listView.removeAll();
             listView.add(addUserItem);
             let first = true;
@@ -101,7 +65,7 @@ class UserList extends Card {
                 }
                 let moreMenu = new Menu();
                 moreMenu.add(this.uis.getString("edit"), _ => {
-                    this.uis.getNavigation().forward(UISUser.NAME(), {"uid": user.id});
+                    this.uis.getNavigation().forward(UISEditUser.NAME(), {"uid": user.id});
                 });
                 moreMenu.add(this.uis.getString("delete"), _ => {
                     this.delete(user);
@@ -134,7 +98,7 @@ class UserList extends Card {
         });
         let yes = new Button(this.uis.getString("delete"));
         yes.setOnClick(_ => {
-            this.uis.getApplication().getUserRepository().deleteUser(user.id).then(_ => this.refresh()).catch(err => this.uis.handleDefaultError(err));
+            this.uis.getApplication().getUserRepository().delete(user.id).then(_ => this.refresh()).catch(err => this.uis.handleDefaultError(err));
             dlg.close();
         });
         dlg.addFooter(no);

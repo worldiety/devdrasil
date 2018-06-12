@@ -1,4 +1,5 @@
 import {throwFromHTTP} from "/wwt/components.js";
+import {SessionProvider} from "./DefaultRepository.js"
 
 export {Session, SessionRepository}
 
@@ -24,9 +25,10 @@ class Session {
 /**
  * The session repository which caches and requests sessions
  */
-class SessionRepository {
+class SessionRepository extends SessionProvider{
 
     constructor(fetcher) {
+        super();
         this.fetcher = fetcher;
         this.memCacheSID = localStorage.getItem(KEY_SID);
         this.memCacheUID = localStorage.getItem(KEY_UID);
@@ -72,9 +74,9 @@ class SessionRepository {
             return sessionPromise.then(raw => {
                 return throwFromHTTP(raw).then(raw => raw.json());
             }).then(json => {
-                this.memCacheSID = json.Id;
+                this.memCacheSID = json["Id"];
                 this.memCacheLogin = login;
-                this.memCacheUID = json.User;
+                this.memCacheUID = json["User"];
                 localStorage.setItem(KEY_SID, this.memCacheSID);
                 localStorage.setItem(KEY_UID, this.memCacheUID);
                 localStorage.setItem(KEY_LOGIN, this.memCacheLogin);

@@ -13,6 +13,7 @@ import (
 	"sync"
 	"github.com/worldiety/devdrasil/backend/session"
 	"github.com/worldiety/devdrasil/backend/user"
+	"github.com/worldiety/devdrasil/backend/group"
 )
 
 type Devdrasil struct {
@@ -41,6 +42,7 @@ type Devdrasil struct {
 
 	restSessions *backend.EndpointSessions
 	restUsers    *backend.EndpointUsers
+	restGroups   *backend.EndpointGroups
 }
 
 func NewDevdrasil() *Devdrasil {
@@ -86,8 +88,11 @@ func NewDevdrasil() *Devdrasil {
 	}
 	sessions := session.NewSessions(devdrasil.db)
 
+	groups := group.NewGroups(devdrasil.db)
+
 	devdrasil.restUsers = backend.NewEndpointUsers(devdrasil.mux, sessions, users, permissions)
 	devdrasil.restSessions = backend.NewEndpointSessions(devdrasil.mux, sessions, users)
+	devdrasil.restGroups = backend.NewEndpointGroups(devdrasil.mux, sessions, users, permissions, groups)
 
 	return devdrasil
 }

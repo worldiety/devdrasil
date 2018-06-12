@@ -25,7 +25,7 @@ class UISDashboard extends DefaultUserInterfaceState {
 
         this.topBar.setTitle(this.getString("dashboard"));
 
-        this.getApplication().getUserRepository().getUsers().then(users => {
+        this.getApplication().getUserRepository().list().then(users => {
             for (let user of users) {
                 card.add(new Body1(JSON.stringify(user)));
             }

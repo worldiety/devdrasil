@@ -45,12 +45,12 @@ class UISLogin extends DefaultUserInterfaceState {
 
         let username = new TextField();
         username.setCaption(this.getString("username"));
-        username.fillParentWidth();
+        username.widthMatchParent();
         card.add(username);
 
         let password = new PasswordField();
         password.setCaption(this.getString("password"));
-        password.fillParentWidth();
+        password.widthMatchParent();
         card.add(password);
 
 

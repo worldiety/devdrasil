@@ -1,11 +1,14 @@
 import {UISDashboard} from "/frontend/uis-dashboard.js";
-import {UISAccounts} from "/frontend/uis-accounts.js";
-import {UISUser} from "/frontend/uis-user.js";
-import {UISAddUser} from "/frontend/uis-user-add.js";
+import {UISAccounts} from "/frontend/accounts/UISAccounts.js";
+import {UISEditUser} from "/frontend/accounts/UISEditUser.js";
+import {UISAddUser} from "/frontend/accounts/UISAddUser.js";
 import {Application, Icon} from "/wwt/components.js";
 import {UISLogin} from "/frontend/uis-login.js";
 import {SessionRepository} from "/frontend/repository/sessionRepository.js";
-import {UserRepository} from "/frontend/repository/userRepository.js";
+import {UserRepository} from "/frontend/repository/UserRepository.js";
+import {GroupRepository} from "./repository/GroupRepository.js";
+import {UISAddGroup} from "./accounts/UISAddGroup.js";
+import {UISEditGroup} from "./accounts/UISEditGroup.js";
 
 class ExampleApp extends Application {
 
@@ -13,11 +16,14 @@ class ExampleApp extends Application {
         super();
         this.menuEnrichers = [];
 
+        this.getNavigation().registerUserInterfaceState("", app => new UISDashboard(app));
         this.getNavigation().registerUserInterfaceState(UISLogin.NAME(), app => new UISLogin(app));
         this.getNavigation().registerUserInterfaceState(UISDashboard.NAME(), app => new UISDashboard(app));
         this.getNavigation().registerUserInterfaceState(UISAccounts.NAME(), app => new UISAccounts(app));
-        this.getNavigation().registerUserInterfaceState(UISUser.NAME(), app => new UISUser(app));
+        this.getNavigation().registerUserInterfaceState(UISEditUser.NAME(), app => new UISEditUser(app));
         this.getNavigation().registerUserInterfaceState(UISAddUser.NAME(), app => new UISAddUser(app));
+        this.getNavigation().registerUserInterfaceState(UISAddGroup.NAME(), app => new UISAddGroup(app));
+        this.getNavigation().registerUserInterfaceState(UISEditGroup.NAME(), app => new UISEditGroup(app));
         this.setLocale("de");
         this.addTranslation("de", "/frontend/values-de/strings.xml");
         this.addTranslation("en", "/frontend/values-en/strings.xml");
@@ -63,6 +69,13 @@ class ExampleApp extends Application {
             this.userRepository = new UserRepository(this.getFetcher(), this.getSessionRepository());
         }
         return this.userRepository;
+    }
+
+    getGroupRepository() {
+        if (this.groupRepository == null) {
+            this.groupRepository = new GroupRepository(this.getFetcher(), this.getSessionRepository());
+        }
+        return this.groupRepository;
     }
 
     validateSession() {

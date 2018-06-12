@@ -10,7 +10,7 @@ import (
 )
 
 type userListDTO struct {
-	Users []*userDTO
+	List []*userDTO
 }
 
 type userDTO struct {
@@ -195,9 +195,13 @@ func (e *EndpointUsers) updateUser(writer http.ResponseWriter, request *http.Req
 		userToUpdate = otherUser
 	}
 
-	if dto.Password == nil || !isGoodPassword(*dto.Password) {
-		http.Error(writer, "password to weak", http.StatusBadRequest)
-		return
+	if dto.Password != nil {
+		if len(*dto.Password) > 0 {
+			if !isGoodPassword(*dto.Password) {
+				http.Error(writer, "password to weak", http.StatusBadRequest)
+				return
+			}
+		}
 	}
 
 	//actually transfer affected fields
@@ -253,7 +257,7 @@ func (e *EndpointUsers) updateUserFields(usr *user.User, dto *userDTO) {
 		usr.Company = dto.Company
 	}
 
-	if dto.Password != nil {
+	if dto.Password != nil && len(*dto.Password) > 0 {
 		usr.SetPassword(*dto.Password)
 	}
 }
@@ -270,26 +274,6 @@ func (endpoint *EndpointUsers) usersVerbs(writer http.ResponseWriter, request *h
 	}
 }
 
-//if returns nil, just return, because the request has been cancelled
-func (e *EndpointUsers) validate(writer http.ResponseWriter, request *http.Request, kind db.PK) (*session.Session, *user.User) {
-	ses, usr := GetSessionAndUser(e.sessions, e.users, writer, request)
-	if usr == nil {
-		return nil, nil
-	}
-
-	allowed, err := e.permissions.IsAllowed(kind, usr)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return nil, nil
-	}
-
-	if !allowed {
-		http.Error(writer, err.Error(), http.StatusForbidden)
-		return nil, nil
-	}
-	return ses, usr
-}
-
 // A user can list all other users, if he has the permission
 //  @Path GET /users
 //  @Header sid string
@@ -298,7 +282,7 @@ func (e *EndpointUsers) validate(writer http.ResponseWriter, request *http.Reque
 //  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent | if user has not the permission)
 //  @Return 500 (for any other error)
 func (e *EndpointUsers) listUsers(writer http.ResponseWriter, request *http.Request) {
-	_, usr := e.validate(writer, request, user.LIST_USERS)
+	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.LIST_USERS)
 	if usr == nil {
 		return
 	}
@@ -311,7 +295,7 @@ func (e *EndpointUsers) listUsers(writer http.ResponseWriter, request *http.Requ
 
 	res := &userListDTO{}
 	for _, u := range users {
-		res.Users = append(res.Users, newUserDTO(u))
+		res.List = append(res.List, newUserDTO(u))
 	}
 	WriteJSONBody(writer, res)
 }
@@ -324,7 +308,7 @@ func (e *EndpointUsers) listUsers(writer http.ResponseWriter, request *http.Requ
 //  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent | if user has not the permission)
 //  @Return 500 (for any other error)
 func (e *EndpointUsers) addUser(writer http.ResponseWriter, request *http.Request) {
-	_, usr := e.validate(writer, request, user.CREATE_USER)
+	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.CREATE_USER)
 	if usr == nil {
 		return
 	}
@@ -385,7 +369,7 @@ func isGoodPassword(s string) bool {
 //  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent | if user has not the permission)
 //  @Return 500 (for any other error)
 func (e *EndpointUsers) deleteUser(writer http.ResponseWriter, request *http.Request, userId db.PK) {
-	_, usr := e.validate(writer, request, user.DELETE_USER)
+	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.DELETE_USER)
 	if usr == nil {
 		return
 	}
@@ -423,7 +407,7 @@ type userPermissionDTO struct {
 //  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent | if user has not the permission)
 //  @Return 500 (for any other error)
 func (e *EndpointUsers) queryPermissions(writer http.ResponseWriter, request *http.Request, userId db.PK) {
-	_, usr := e.validate(writer, request, user.LIST_USERS)
+	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.LIST_USERS)
 	if usr == nil {
 		return
 	}

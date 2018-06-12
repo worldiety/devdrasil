@@ -68,13 +68,14 @@ func (h *frontendHandler) handleRoot(writer http.ResponseWriter, request *http.R
 	sb.WriteString(`<link rel="stylesheet" href="/wwt/mcw.min.css"/>`)
 	sb.WriteString("\n")
 
-	sb.WriteString(`<link rel="stylesheet" href="/wwt/fixes.css"/>`)
-	sb.WriteString("\n")
 
 	sb.WriteString(`<link rel="stylesheet" href="/wwt/material_icons.css">`)
 	sb.WriteString("\n")
 
 	sb.WriteString(`<script type="text/javascript" src="/wwt/mcw.min.js"></script>`)
+	sb.WriteString("\n")
+
+	sb.WriteString(`<link rel="stylesheet" href="/wwt/fixes.css"/>`)
 	sb.WriteString("\n")
 
 	sb.WriteString(`<script src="/frontend/app.js" type="module"></script>`)

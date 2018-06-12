@@ -1,4 +1,5 @@
 import {Fetcher, throwFromHTTP} from "/wwt/components.js";
+import {DefaultRepository} from "./DefaultRepository.js";
 
 export {UserRepository, User}
 
@@ -30,6 +31,19 @@ class User {
     }
 
 
+    /**
+     *
+     * @param {string} gid
+     * @returns {boolean}
+     */
+    hasGroup(gid) {
+        for (let id of this.groups) {
+            if (id === gid) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
 
 class UserPermissions {
@@ -51,27 +65,11 @@ class UserPermissions {
     }
 }
 
-class UserRepository {
-    constructor(fetcher, sessionRepository) {
-        this.fetcher = fetcher;
-        this.sessionRepository = sessionRepository;
+class UserRepository extends DefaultRepository {
+    constructor(fetcher, sessionProvider) {
+        super(fetcher, "users", sessionProvider);
     }
 
-
-    /**
-     * Returns the user either by getting it from cache or by loading it from the endpoint
-     * @param {string} id
-     * @returns {PromiseLike<User>}
-     */
-    async getUser(id) {
-        let session = await this.sessionRepository.getSession();
-        return _requestUser(this.fetcher, session.sid, id).then(raw => {
-            return throwFromHTTP(raw).then(raw => raw.json());
-        }).then(json => {
-            return this.userFromJson(json);
-        });
-
-    }
 
     /**
      * Returns the user either by getting it from cache or by loading it from the endpoint
@@ -79,139 +77,49 @@ class UserRepository {
      * @returns {PromiseLike<UserPermissions>}
      */
     async getUserPermissions(id) {
-        let session = await this.sessionRepository.getSession();
+        let session = await this.sessionProvider.getSession();
         return _requestUserPermissions(this.fetcher, session.sid, id).then(raw => {
             return throwFromHTTP(raw).then(raw => raw.json());
         }).then(json => {
-            return new UserPermissions(json.ListUsers, json.CreateUser, json.DeleteUser, json.UpdateUser, json.GetUser);
+            return new UserPermissions(json["ListUsers"], json["CreateUser"], json["DeleteUser"], json["UpdateUser"], json["GetUser"]);
         });
 
     }
 
     /**
      *  Returns the user either by getting it from cache or by loading it from the endpoint
-     * @returns {Promise<User>}
-     */
-    async getSessionUser() {
-        let session = await this.sessionRepository.getSession();
-        return _requestUser(this.fetcher, session.sid, session.uid).then(raw => {
-            return throwFromHTTP(raw).then(raw => raw.json());
-        }).then(json => {
-            return this.userFromJson(json);
-        });
-    }
-
-    /**
-     * Returns all available users
-     *
-     * @returns {!PromiseLike<Array<User>>}
-     */
-    async getUsers() {
-        let session = await this.sessionRepository.getSession();
-        return _requestUsers(this.fetcher, session.sid).then(raw => {
-            return throwFromHTTP(raw).then(raw => raw.json());
-        }).then(json => {
-            let users = [];
-            for (let user of json.Users) {
-                users.push(this.userFromJson(user));
-            }
-            return users;
-        });
-
-    }
-
-    /**
-     * Updates the given user identified by its id.
-     * @param {User} user
-     * @returns {Promise<User>}
-     */
-    async updateUser(user) {
-        let session = await this.sessionRepository.getSession();
-        return _requestUpdateUser(this.fetcher, session.sid, user).then(raw => {
-            return throwFromHTTP(raw).then(raw => raw.json());
-        }).then(json => {
-            return this.userFromJson(json);
-        })
-    }
-
-    /**
-     *
-     * @param {string} uid
-     * @returns {Promise<void>}
-     */
-    async deleteUser(uid) {
-        let session = await this.sessionRepository.getSession();
-        return _requestDeleteUser(this.fetcher, session.sid, uid).then(raw => {
-            return throwFromHTTP(raw);
-        });
-    }
-
-    /**
-     * Inserts a new user
-     * @param {User}user
      * @returns {PromiseLike<User>}
      */
-    async createUser(user) {
-        let session = await this.sessionRepository.getSession();
-        return _requestCreateUser(this.fetcher, session.sid, user).then(raw => {
-            return throwFromHTTP(raw).then(raw => raw.json());
-        }).then(json => {
-            return this.userFromJson(json);
-        })
+    async getSessionUser() {
+        let session = await this.sessionProvider.getSession();
+        return this.get(session.uid);
     }
+
 
     /**
      *
      * @param json
      * @return User
      */
-    userFromJson(json) {
-        return new User(json.Id, json.Login, json.Firstname, json.Lastname, json.Active, json.avatar, json.EMailAddresses, json.Company, json.Groups)
+    fromJson(json) {
+        return new User(json["Id"], json["Login"], json["Firstname"], json["Lastname"], json["Active"], json["Avatar"], json["EMailAddresses"], json["Company"], json["Groups"] == null ? [] : json["Groups"])
+    }
+
+    /**
+     * Requests all users from the given id list
+     * @param {Array<string>} ids
+     * @returns {Promise<Array<User>>}
+     */
+    async getUsersByIds(ids) {
+        let users = [];
+        for (let uid of ids) {
+            let user = await this.ctx.getApplication().getUserRepository().get(uid);
+            users.push(user);
+        }
+        return users;
     }
 }
 
-/**
- *
- * @param {Fetcher} fetcher
- * @param {string} sid
- * @param {User} user
- * @returns {Promise<any>}
- * @private
- */
-function _requestUpdateUser(fetcher, sid, user) {
-    let cfg = {
-        method: 'PUT',
-        headers: {
-            'sid': sid,
-        },
-        body: JSON.stringify(user),
-        cache: 'no-store'
-    };
-    return fetcher.fetchRaw('/users/' + user.id, cfg)
-}
-
-
-function _requestUser(fetcher, sid, uid) {
-    let cfg = {
-        method: 'GET',
-        headers: {
-            'sid': sid,
-        },
-        cache: 'no-store'
-    };
-    return fetcher.fetchRaw('/users/' + uid, cfg)
-}
-
-function _requestUsers(fetcher, sid) {
-    let cfg = {
-        method: 'GET',
-        headers: {
-            'sid': sid,
-        },
-        cache: 'no-store'
-    };
-    return fetcher.fetchRaw('/users', cfg)
-}
 
 function _requestUserPermissions(fetcher, sid, uid) {
     let cfg = {
@@ -224,25 +132,3 @@ function _requestUserPermissions(fetcher, sid, uid) {
     return fetcher.fetchRaw('/users/permissions/' + uid, cfg)
 }
 
-function _requestDeleteUser(fetcher, sid, uid) {
-    let cfg = {
-        method: 'DELETE',
-        headers: {
-            'sid': sid,
-        },
-        cache: 'no-store'
-    };
-    return fetcher.fetchRaw('/users/' + uid, cfg)
-}
-
-function _requestCreateUser(fetcher, sid, user) {
-    let cfg = {
-        method: 'POST',
-        headers: {
-            'sid': sid,
-        },
-        cache: 'no-store',
-        body: JSON.stringify(user),
-    };
-    return fetcher.fetchRaw('/users', cfg)
-}

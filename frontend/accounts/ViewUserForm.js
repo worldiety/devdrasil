@@ -18,92 +18,9 @@ import {
     UserInterfaceState
 } from "/wwt/components.js";
 
-import {DefaultUserInterfaceState, Main} from "/frontend/uis-default.js";
-import {UISDashboard} from "/frontend/uis-dashboard.js";
+export {ViewUserForm}
 
-export {UISUser, UserFormLayout}
-
-class UISUser extends DefaultUserInterfaceState {
-
-    static NAME() {
-        return "user";
-    }
-
-    constructor(app) {
-        super(app);
-    }
-
-    apply() {
-        super.apply();
-
-
-        let uid = this.getNavigation().getSearchParam("uid");
-
-        this.getApplication().getUserRepository().getUser(uid).then(user => {
-            let card = new Main();
-            this.topBar.setTitle(user.firstname + " " + user.lastname);
-
-            let userForm = new UserFormLayout(this, user);
-            card.add(userForm);
-
-            userForm.btnLogin.setOnClick(e => {
-                userForm.clearTips();
-
-
-                //quick evaluation
-                let hasError = userForm.checkDefault();
-
-
-                //only set pwd if not empty, otherwise keep the old one
-                if (userForm.pwd1.getText().trim().length !== 0 || userForm.pwd2.getText().trim().length !== 0) {
-
-                    if (userForm.pwd1.getText() !== userForm.pwd2.getText()) {
-                        userForm.pwd1.setHelperText(this.getString("passwords_unmatch"), true);
-                        userForm.pwd2.setHelperText(this.getString("passwords_unmatch"), true);
-                        hasError = true;
-                    }
-                }
-
-
-                if (hasError) {
-                    return
-                }
-
-                userForm.updateModel();
-
-                this.getApplication().getUserRepository().updateUser(user).then(updatedUser => {
-                    //login case may have been rewritten
-                    user.login = updatedUser.login;
-
-                    //we succeeded
-                    window.history.back()
-
-                }).catch(err => {
-                    userForm.handleFormError(err);
-
-                });
-
-            });
-
-
-            this.setContent(card);
-
-        }).catch(err => {
-
-            this.handleDefaultError(err)
-        });
-
-
-        let box = new CenterBox();
-        let spinner = new CircularProgressIndicator();
-        box.add(spinner);
-        this.setContent(box);
-    }
-
-}
-
-
-class UserFormLayout extends Box {
+class ViewUserForm extends Box {
     /**
      *
      * @param {UserInterfaceState} ctx
@@ -215,19 +132,24 @@ class UserFormLayout extends Box {
         return this.user;
     }
 
+    /**
+     *
+     * @param {Error} err
+     * @returns {boolean} true if handled, otherwise false
+     */
     handleFormError(err) {
         if (err instanceof NotUniqueException) {
-            login.setHelperText(this.uis.getString("name_not_unique"), true);
+            this.login.setHelperText(this.uis.getString("name_not_unique"), true);
+            return true;
         } else {
 
             if (err.message.indexOf("password to weak") >= 0) {
                 this.pwd1.setHelperText(this.uis.getString("password_weak"), true);
                 this.pwd2.setHelperText(this.uis.getString("password_weak"), true);
-                return;
-            } else {
-                this.handleDefaultError(err);
+                return true;
             }
 
         }
+        return false;
     }
 }

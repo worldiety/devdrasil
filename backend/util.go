@@ -79,6 +79,26 @@ func GetSessionAndUser(sessions *session.Sessions, users *user.Users, writer htt
 	return session, user
 }
 
+//if returns nil, just return, because the request has been cancelled
+func validate(sessions *session.Sessions, users *user.Users, permissions *user.Permissions, writer http.ResponseWriter, request *http.Request, kind db.PK) (*session.Session, *user.User) {
+	ses, usr := GetSessionAndUser(sessions, users, writer, request)
+	if usr == nil {
+		return nil, nil
+	}
+
+	allowed, err := permissions.IsAllowed(kind, usr)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return nil, nil
+	}
+
+	if !allowed {
+		http.Error(writer, err.Error(), http.StatusForbidden)
+		return nil, nil
+	}
+	return ses, usr
+}
+
 func AnyErrorAsInternalError(err error, writer http.ResponseWriter) bool {
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
