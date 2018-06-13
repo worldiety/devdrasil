@@ -4,35 +4,35 @@ import (
 	"net/http"
 	"github.com/worldiety/devdrasil/backend/session"
 	"github.com/worldiety/devdrasil/backend/user"
-	"github.com/worldiety/devdrasil/backend/group"
 	"github.com/worldiety/devdrasil/db"
 	"strings"
+	"github.com/worldiety/devdrasil/backend/company"
 )
 
-type EndpointGroups struct {
+type EndpointCompanies struct {
 	mux         *http.ServeMux
 	users       *user.Users
 	sessions    *session.Sessions
-	groups      *group.Groups
+	companies   *company.Companies
 	permissions *user.Permissions
 }
 
-type groupListDTO struct {
-	List []*groupDTO
+type companyListDTO struct {
+	List []*companyDTO
 }
 
-func newGroupDTO(users *user.Users, group *group.Group) *groupDTO {
+func newCompanyDTO(users *user.Users, company *company.Company) *companyDTO {
 	list, _ := users.List()
 	tmp := make([]db.PK, 0)
 	for _, usr := range list {
-		if usr.HasGroup(group.Id) {
+		if usr.HasCompany(company.Id) {
 			tmp = append(tmp, usr.Id)
 		}
 	}
-	return &groupDTO{Id: group.Id, Name: group.Name, Users: tmp}
+	return &companyDTO{Id: company.Id, Name: company.Name, Users: tmp}
 }
 
-type groupDTO struct {
+type companyDTO struct {
 	//unique entity id, e.g. "abc38293"
 	Id db.PK
 
@@ -43,15 +43,15 @@ type groupDTO struct {
 	Users []db.PK
 }
 
-func NewEndpointGroups(mux *http.ServeMux, sessions *session.Sessions, users *user.Users, permissions *user.Permissions, groups *group.Groups) *EndpointGroups {
-	endpoint := &EndpointGroups{mux: mux, sessions: sessions, permissions: permissions, users: users, groups: groups}
-	mux.HandleFunc("/groups/", endpoint.groupVerbs)
-	mux.HandleFunc("/groups", endpoint.groupsVerbs)
+func NewEndpointCompanies(mux *http.ServeMux, sessions *session.Sessions, users *user.Users, permissions *user.Permissions, companies *company.Companies) *EndpointCompanies {
+	endpoint := &EndpointCompanies{mux: mux, sessions: sessions, permissions: permissions, users: users, companies: companies}
+	mux.HandleFunc("/companies/", endpoint.companyVerbs)
+	mux.HandleFunc("/companies", endpoint.companiesVerbs)
 	return endpoint
 }
 
-func (e *EndpointGroups) groupVerbs(writer http.ResponseWriter, request *http.Request) {
-	groupId, err := db.ParsePK(strings.TrimPrefix(request.URL.Path, "/groups/"))
+func (e *EndpointCompanies) companyVerbs(writer http.ResponseWriter, request *http.Request) {
+	groupId, err := db.ParsePK(strings.TrimPrefix(request.URL.Path, "/companies/"))
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
@@ -59,11 +59,11 @@ func (e *EndpointGroups) groupVerbs(writer http.ResponseWriter, request *http.Re
 
 	switch request.Method {
 	case "GET":
-		e.getGroup(writer, request, groupId)
+		e.getCompany(writer, request, groupId)
 	case "PUT":
-		e.updateGroup(writer, request, groupId)
+		e.updateCompany(writer, request, groupId)
 	case "DELETE":
-		e.deleteGroup(writer, request, groupId)
+		e.deleteCompany(writer, request, groupId)
 
 	default:
 		http.Error(writer, request.Method, http.StatusMethodNotAllowed);
@@ -71,68 +71,68 @@ func (e *EndpointGroups) groupVerbs(writer http.ResponseWriter, request *http.Re
 	}
 }
 
-// A user can list all groups, if he has the permission list user permissions
-//  @Path GET /groups
+// A user can list all companies, if he has the permission list user permissions
+//  @Path GET /companies
 //  @Header sid string
-//	@Body []github.com/worldiety/devdrasil/backend/groupListDTO
+//	@Body []github.com/worldiety/devdrasil/backend/companyListDTO
 //	@Return 200
 //  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent | if user has not the permission)
 //  @Return 500 (for any other error)
-func (e *EndpointGroups) listGroups(writer http.ResponseWriter, request *http.Request) {
+func (e *EndpointCompanies) listCompanies(writer http.ResponseWriter, request *http.Request) {
 	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.LIST_USERS)
 	if usr == nil {
 		return
 	}
 
-	groups, err := e.groups.List()
+	companies, err := e.companies.List()
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	res := &groupListDTO{}
-	res.List = make([]*groupDTO, 0)
-	for _, g := range groups {
-		res.List = append(res.List, newGroupDTO(e.users, g))
+	res := &companyListDTO{}
+	res.List = make([]*companyDTO, 0)
+	for _, g := range companies {
+		res.List = append(res.List, newCompanyDTO(e.users, g))
 	}
 	WriteJSONBody(writer, res)
 }
 
-func (e *EndpointGroups) groupsVerbs(writer http.ResponseWriter, request *http.Request) {
+func (e *EndpointCompanies) companiesVerbs(writer http.ResponseWriter, request *http.Request) {
 	switch request.Method {
 	case "GET":
-		e.listGroups(writer, request);
+		e.listCompanies(writer, request);
 	case "POST":
-		e.addGroup(writer, request);
+		e.addCompany(writer, request);
 	default:
 		http.Error(writer, request.Method, http.StatusMethodNotAllowed);
 		return
 	}
 }
 
-// A user can add another group, if he has the permission for adding user
-//  @Path POST /groups
+// A user can add another company, if he has the permission for adding user
+//  @Path POST /companies
 //  @Header sid string
-//	@Body github.com/worldiety/devdrasil/backend/groupDTO
-//	@Return 200 github.com/worldiety/devdrasil/backend/groupDTO
+//	@Body github.com/worldiety/devdrasil/backend/companyDTO
+//	@Return 200 github.com/worldiety/devdrasil/backend/companyDTO
 //  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent | if user has not the permission)
 //  @Return 500 (for any other error)
-func (e *EndpointGroups) addGroup(writer http.ResponseWriter, request *http.Request) {
+func (e *EndpointCompanies) addCompany(writer http.ResponseWriter, request *http.Request) {
 	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.CREATE_USER)
 	if usr == nil {
 		return
 	}
 
-	dto := &groupDTO{}
+	dto := &companyDTO{}
 	err := ReadJSONBody(writer, request, dto)
 	if err != nil {
 		return
 	}
 
-	newGroup := &group.Group{}
-	newGroup.Name = dto.Name
+	newCompany := &company.Company{}
+	newCompany.Name = dto.Name
 
-	err = e.groups.Add(newGroup)
+	err = e.companies.Add(newCompany)
 	if err != nil {
 		if db.IsNotUnique(err) {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
@@ -142,39 +142,39 @@ func (e *EndpointGroups) addGroup(writer http.ResponseWriter, request *http.Requ
 		return
 	}
 
-	err = e.updateAllUsers(newGroup.Id, dto.Users)
+	err = e.updateAllUsers(newCompany.Id, dto.Users)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	WriteJSONBody(writer, newGroupDTO(e.users, newGroup))
+	WriteJSONBody(writer, newCompanyDTO(e.users, newCompany))
 }
 
 //loops through all users and removes the group reference from all users which are not in the given list and adds the group to all users given.
-func (e *EndpointGroups) updateAllUsers(groupId db.PK, users []db.PK) error {
+func (e *EndpointCompanies) updateAllUsers(companyId db.PK, users []db.PK) error {
 	allUsers, err := e.users.List()
 	if err != nil {
 		return err
 	}
 
 	for _, user := range allUsers {
-		userShouldBeInGroup := false
+		userShouldBeInCompany := false
 		for _, usr := range users {
 			if user.Id == usr {
-				userShouldBeInGroup = true
+				userShouldBeInCompany = true
 				break
 			}
 		}
-		if userShouldBeInGroup && !user.HasGroup(groupId) {
-			user.Groups = append(user.Groups, groupId)
+		if userShouldBeInCompany && !user.HasCompany(companyId) {
+			user.Company = &companyId
 			err = e.users.Update(user)
 			if err != nil {
 				return err
 			}
 		} else
-		if !userShouldBeInGroup && user.HasGroup(groupId) {
-			user.RemoveGroup(groupId)
+		if !userShouldBeInCompany && user.HasCompany(companyId) {
+			user.Company = nil
 			err = e.users.Update(user)
 			if err != nil {
 				return err
@@ -185,20 +185,20 @@ func (e *EndpointGroups) updateAllUsers(groupId db.PK, users []db.PK) error {
 	return nil
 }
 
-// A user can delete another group, if he has the permission (delete user)
-//  @Path DELETE /groups/{id}
+// A user can delete another company, if he has the permission (delete user)
+//  @Path DELETE /companies/{id}
 //  @Header sid string
 //	@Return 200
 //  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent | if user has not the permission)
 //  @Return 500 (for any other error)
-func (e *EndpointGroups) deleteGroup(writer http.ResponseWriter, request *http.Request, groupId db.PK) {
+func (e *EndpointCompanies) deleteCompany(writer http.ResponseWriter, request *http.Request, companyId db.PK) {
 	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.DELETE_USER)
 	if usr == nil {
 		return
 	}
 
-	e.updateAllUsers(groupId,nil)
-	err := e.groups.Delete(groupId)
+	e.updateAllUsers(companyId, nil)
+	err := e.companies.Delete(companyId)
 	if err != nil {
 		if db.IsEntityNotFound(err) {
 			http.Error(writer, err.Error(), http.StatusNotFound)
@@ -212,12 +212,12 @@ func (e *EndpointGroups) deleteGroup(writer http.ResponseWriter, request *http.R
 }
 
 // A user needs the GET_USER permission
-//  @Path GET /groups/{id} (id is hex encoded group PK)
+//  @Path GET /companies/{id} (id is hex encoded group PK)
 //  @Header sid string
-//	@Return 200 github.com/worldiety/devdrasil/backend/groupDTO
+//	@Return 200 github.com/worldiety/devdrasil/backend/companyDTO
 //  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent)
 //  @Return 500 (for any other error)
-func (e *EndpointGroups) getGroup(writer http.ResponseWriter, request *http.Request, groupId db.PK) {
+func (e *EndpointCompanies) getCompany(writer http.ResponseWriter, request *http.Request, companyId db.PK) {
 	_, usr := GetSessionAndUser(e.sessions, e.users, writer, request)
 	if usr == nil {
 		return
@@ -234,7 +234,7 @@ func (e *EndpointGroups) getGroup(writer http.ResponseWriter, request *http.Requ
 		return
 	}
 
-	group, err := e.groups.Get(groupId)
+	company, err := e.companies.Get(companyId)
 	if err != nil {
 		if db.IsEntityNotFound(err) {
 			http.Error(writer, err.Error(), http.StatusNotFound)
@@ -245,24 +245,24 @@ func (e *EndpointGroups) getGroup(writer http.ResponseWriter, request *http.Requ
 		return
 	}
 	//return the other user dto
-	WriteJSONBody(writer, newGroupDTO(e.users, group))
+	WriteJSONBody(writer, newCompanyDTO(e.users, company))
 	return
 }
 
 // A user needs the UPDATE permission.
-//  @Path PUT /groups/{id}
+//  @Path PUT /companies/{id}
 //  @Header sid string
-//	@Body github.com/worldiety/devdrasil/backend/groupDTO
-//	@Return 200 github.com/worldiety/devdrasil/backend/groupDTO
+//	@Body github.com/worldiety/devdrasil/backend/companyDTO
+//	@Return 200 github.com/worldiety/devdrasil/backend/companyDTO
 //  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent)
 //  @Return 500 (for any other error)
-func (e *EndpointGroups) updateGroup(writer http.ResponseWriter, request *http.Request, groupId db.PK) {
+func (e *EndpointCompanies) updateCompany(writer http.ResponseWriter, request *http.Request, groupId db.PK) {
 	_, usr := GetSessionAndUser(e.sessions, e.users, writer, request)
 	if usr == nil {
 		return
 	}
 
-	dto := &groupDTO{}
+	dto := &companyDTO{}
 	err := ReadJSONBody(writer, request, dto)
 	if err != nil {
 		return
@@ -279,7 +279,7 @@ func (e *EndpointGroups) updateGroup(writer http.ResponseWriter, request *http.R
 		return
 	}
 
-	otherGroup, err := e.groups.Get(groupId)
+	otherCompany, err := e.companies.Get(groupId)
 	if err != nil {
 		if db.IsEntityNotFound(err) {
 			http.Error(writer, err.Error(), http.StatusNotFound)
@@ -289,10 +289,10 @@ func (e *EndpointGroups) updateGroup(writer http.ResponseWriter, request *http.R
 		return
 	}
 
-	otherGroup.Name = dto.Name
+	otherCompany.Name = dto.Name
 
 	//rewrite
-	err = e.groups.Update(otherGroup)
+	err = e.companies.Update(otherCompany)
 	if err != nil {
 		if db.IsNotUnique(err) {
 			http.Error(writer, err.Error(), http.StatusBadRequest)
@@ -303,13 +303,13 @@ func (e *EndpointGroups) updateGroup(writer http.ResponseWriter, request *http.R
 		return
 	}
 
-	err = e.updateAllUsers(otherGroup.Id, dto.Users)
+	err = e.updateAllUsers(otherCompany.Id, dto.Users)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	//return the newly data
-	WriteJSONBody(writer, newGroupDTO(e.users, otherGroup))
+	WriteJSONBody(writer, newCompanyDTO(e.users, otherCompany))
 
 }

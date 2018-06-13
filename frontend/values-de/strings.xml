@@ -16,12 +16,14 @@
     </string>
     <string name="your_users">Deine Nutzer</string>
     <string name="your_groups">Deine Gruppen</string>
+    <string name="your_companies">Deine Firmen</string>
     <string name="add">Hinzufügen</string>
     <string name="ok">Ok</string>
     <string name="edit">Bearbeiten</string>
     <string name="delete">Löschen</string>
     <string name="delete_user_x">Möchtest du den Nutzer '%s' wirklich löschen?</string>
     <string name="delete_group_x">Möchtest du die Gruppe '%s' wirklich löschen?</string>
+    <string name="delete_company_x">Möchtest du die Firma '%s' wirklich löschen?</string>
     <string name="cancel">Abbrechen</string>
     <string name="firstname">Vorname</string>
     <string name="lastname">Nachname</string>
@@ -32,10 +34,12 @@
     <string name="cannot_delete_root">Du kannst den Super-User nicht löschen.</string>
     <string name="new_user">Nutzer hinzufügen</string>
     <string name="new_group">Gruppe hinzufügen</string>
+    <string name="new_company">Firma hinzufügen</string>
     <string name="password_weak">Das Kennwort ist zu schwach. Es muss mindestens aus 7 Zeichen, Groß- und Kleinbuchstaben sowie einem Sonderzeichen bestehen.</string>
     <string name="password">Kennwort</string>
     <string name="password_repeat">Kennwort wiederholen</string>
     <string name="passwords_unmatch">Die Kennwörter stimmen nicht überein.</string>
     <string name="name">Name</string>
     <string name="x_members">%s Mitglieder</string>
+    <string name="x_employees">%s Mitarbeiter</string>
 </resources>

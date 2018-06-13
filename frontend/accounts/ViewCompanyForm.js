@@ -21,32 +21,32 @@ import {
     UserInterfaceState
 } from "/wwt/components.js";
 
-export {ViewGroupForm}
+export {ViewCompanyForm}
 
-class ViewGroupForm extends Box {
+class ViewCompanyForm extends Box {
     /**
      *
      * @param {DefaultUserInterfaceState} ctx
-     * @param {Group} user
+     * @param {Company} company
      */
-    constructor(ctx, group) {
+    constructor(ctx, company) {
         super();
         this.uis = ctx;
-        this.group = group;
+        this.company = company;
         let row = new LayoutGrid();
         row.widthMatchParent();
 
 
         this.name = new TextField();
         this.name.setCaption(ctx.getString("name"));
-        this.name.setText(group.name);
+        this.name.setText(company.name);
         this.name.widthMatchParent();
         row.add(this.name, 6);
 
 
         this.add(row);
 
-        this.userList = new SelectedUserList(ctx, group);
+        this.userList = new SelectedUserList(ctx, company);
         this.userList.refresh();
         this.add(this.userList);
 
@@ -87,9 +87,9 @@ class ViewGroupForm extends Box {
     }
 
     updateModel() {
-        this.group.name = this.name.getText().trim();
+        this.company.name = this.name.getText().trim();
         this.userList.updateModel();
-        return this.group;
+        return this.company;
     }
 
     /**
@@ -110,11 +110,11 @@ class ViewGroupForm extends Box {
 class SelectedUserList extends Box {
     /**
      * @param {DefaultUserInterfaceState} ctx
-     * @param {Group} group
+     * @param {Company} company
      */
-    constructor(ctx, group) {
+    constructor(ctx, company) {
         super();
-        this.company = group;
+        this.company = company;
         this.ctx = ctx;
     }
 
@@ -131,7 +131,7 @@ class SelectedUserList extends Box {
             this.listView = new ListView();
             for (let user of users) {
                 let entry = new SelectableUserEntry(user);
-                if (user.hasGroup(this.company.id)) {
+                if (user.hasCompany(this.company.id)) {
                     entry.setSelected(true);
                 }
                 this.listView.add(entry);

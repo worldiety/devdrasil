@@ -70,6 +70,10 @@ func (u *User) HasGroup(id db.PK) bool {
 	return false
 }
 
+func (u *User) HasCompany(id db.PK) bool {
+	return u.Company != nil && *u.Company == id
+}
+
 //Sets the password hash by calculating a bcrypt hash
 func (u *User) SetPassword(pwd string) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(pwd), bcrypt.DefaultCost)

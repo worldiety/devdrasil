@@ -5,10 +5,13 @@ import {UISAddUser} from "/frontend/accounts/UISAddUser.js";
 import {Application, Icon} from "/wwt/components.js";
 import {UISLogin} from "/frontend/uis-login.js";
 import {SessionRepository} from "/frontend/repository/sessionRepository.js";
-import {UserRepository} from "/frontend/repository/UserRepository.js";
+import {UserRepository} from "./repository/UserRepository.js";
 import {GroupRepository} from "./repository/GroupRepository.js";
+import {CompanyRepository} from "./repository/CompanyRepository.js";
 import {UISAddGroup} from "./accounts/UISAddGroup.js";
 import {UISEditGroup} from "./accounts/UISEditGroup.js";
+import {UISEditCompany} from "./accounts/UISEditCompany.js";
+import {UISAddCompany} from "./accounts/UISAddCompany.js";
 
 class ExampleApp extends Application {
 
@@ -24,6 +27,8 @@ class ExampleApp extends Application {
         this.getNavigation().registerUserInterfaceState(UISAddUser.NAME(), app => new UISAddUser(app));
         this.getNavigation().registerUserInterfaceState(UISAddGroup.NAME(), app => new UISAddGroup(app));
         this.getNavigation().registerUserInterfaceState(UISEditGroup.NAME(), app => new UISEditGroup(app));
+        this.getNavigation().registerUserInterfaceState(UISEditCompany.NAME(), app => new UISEditCompany(app));
+        this.getNavigation().registerUserInterfaceState(UISAddCompany.NAME(), app => new UISAddCompany(app));
         this.setLocale("de");
         this.addTranslation("de", "/frontend/values-de/strings.xml");
         this.addTranslation("en", "/frontend/values-en/strings.xml");
@@ -76,6 +81,13 @@ class ExampleApp extends Application {
             this.groupRepository = new GroupRepository(this.getFetcher(), this.getSessionRepository());
         }
         return this.groupRepository;
+    }
+
+    getCompanyRepository() {
+        if (this.companyRepository == null) {
+            this.companyRepository = new CompanyRepository(this.getFetcher(), this.getSessionRepository());
+        }
+        return this.companyRepository;
     }
 
     validateSession() {

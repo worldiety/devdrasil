@@ -44,6 +44,15 @@ class User {
         }
         return false;
     }
+
+    /**
+     *
+     * @param {string} gid
+     * @returns {boolean}
+     */
+    hasCompany(cid) {
+        return cid === this.company;
+    }
 }
 
 class UserPermissions {

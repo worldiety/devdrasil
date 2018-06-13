@@ -46,7 +46,7 @@ type userDTO struct {
 }
 
 func newUserDTO(user *user.User) *userDTO {
-	return &userDTO{Id: &user.Id, Login: &user.Login, Firstname: &user.Firstname, Lastname: &user.Lastname, Active: &user.Active, AvatarImage: user.AvatarImage, EMailAddresses: &user.EMailAddresses, Groups: &user.Groups}
+	return &userDTO{Id: &user.Id, Login: &user.Login, Firstname: &user.Firstname, Lastname: &user.Lastname, Active: &user.Active, AvatarImage: user.AvatarImage, EMailAddresses: &user.EMailAddresses, Groups: &user.Groups, Company: user.Company}
 }
 
 type EndpointUsers struct {
