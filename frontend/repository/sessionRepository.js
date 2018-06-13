@@ -25,7 +25,7 @@ class Session {
 /**
  * The session repository which caches and requests sessions
  */
-class SessionRepository extends SessionProvider{
+class SessionRepository extends SessionProvider {
 
     constructor(fetcher) {
         super();
@@ -69,6 +69,9 @@ class SessionRepository extends SessionProvider{
         let requiresLogin = this.memCacheLogin === "" || (login !== this.memCacheLogin && login !== "");
 
         if (requiresLogin) {
+            if (login === "" || password === "") {
+                throw new Error("empty credentials");
+            }
             //requires update
             let sessionPromise = _requestSession(this.fetcher, login, password, client);
             return sessionPromise.then(raw => {

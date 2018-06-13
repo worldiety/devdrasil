@@ -42,4 +42,6 @@
     <string name="name">Name</string>
     <string name="x_members">%s Mitglieder</string>
     <string name="x_employees">%s Mitarbeiter</string>
+    <string name="themeColorPrimary">Primärfarbe</string>
+    <string name="field_is_not_hex_color">Der Wert muss als hex angegeben werden, z.B. #aabbcc.</string>
 </resources>

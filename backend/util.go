@@ -93,7 +93,7 @@ func validate(sessions *session.Sessions, users *user.Users, permissions *user.P
 	}
 
 	if !allowed {
-		http.Error(writer, err.Error(), http.StatusForbidden)
+		http.Error(writer, "", http.StatusForbidden)
 		return nil, nil
 	}
 	return ses, usr

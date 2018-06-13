@@ -32,6 +32,7 @@ class UISDashboard extends DefaultUserInterfaceState {
         });
 
 
+
         this.setContent(card);
 
     }

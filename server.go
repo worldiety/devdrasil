@@ -17,6 +17,8 @@ import (
 	"github.com/worldiety/devdrasil/backend/company"
 )
 
+
+
 type Devdrasil struct {
 	//Host is the ip or host name where the server listens
 	host string
@@ -124,3 +126,5 @@ func (s *Devdrasil) Start() {
 	log.Printf("starting devdrasil at %s:%d...\n", s.host, s.port)
 	log.Fatal(http.ListenAndServe(s.host+":"+strconv.Itoa(s.port), nil))
 }
+
+

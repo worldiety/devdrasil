@@ -20,7 +20,8 @@ export {DefaultUserInterfaceState, Main}
 class DefaultUserInterfaceState extends UserInterfaceState {
     constructor(app) {
         super(app);
-
+        //reset the class because when switching from the menu, we are left with mdc-drawer-scroll-lock
+        document.body.className = "";
         //the app bar should never be missing
         this.topBar = new AppBar();
         //the title sets the document title automatically, you can manually set it differently with  "this.setTitle("Component Demo");"
@@ -30,11 +31,35 @@ class DefaultUserInterfaceState extends UserInterfaceState {
         this.drawer = new Drawer();
 
         this.getApplication().getUserRepository().getSessionUser().then(user => {
+            if (user.company !== "") {
+                this.getApplication().getCompanyRepository().get(user.company).then(company => {
+                    this.applyCompanyTheme(company);
+                }).catch(err => {
+                    this.applyDefaultTheme();
+                    console.error("failed to apply company theme: " + err);
+                });
+
+            } else {
+                this.applyDefaultTheme();
+            }
+
             this.drawer.setCaption(user.firstname + " " + user.lastname);
+        }).catch(err => {
+            this.applyDefaultTheme();
         });
 
 
         this.topBar.setDrawer(this.drawer);
+    }
+
+    applyCompanyTheme(company) {
+        let html = document.getElementsByTagName('html')[0];
+        html.style.setProperty("--mdc-theme-primary", company.themePrimaryColor);
+    }
+
+    applyDefaultTheme() {
+        let html = document.getElementsByTagName('html')[0];
+        html.style.setProperty("--mdc-theme-primary", "#607d8b");
     }
 
     onCreateSideMenu() {

@@ -29,7 +29,7 @@ func newCompanyDTO(users *user.Users, company *company.Company) *companyDTO {
 			tmp = append(tmp, usr.Id)
 		}
 	}
-	return &companyDTO{Id: company.Id, Name: company.Name, Users: tmp}
+	return &companyDTO{Id: company.Id, Name: company.Name, Users: tmp, ThemePrimaryColor: company.ThemePrimaryColor}
 }
 
 type companyDTO struct {
@@ -38,6 +38,9 @@ type companyDTO struct {
 
 	//the name of the group
 	Name string
+
+	//the primary color
+	ThemePrimaryColor string
 
 	//all users within this group
 	Users []db.PK
@@ -130,7 +133,8 @@ func (e *EndpointCompanies) addCompany(writer http.ResponseWriter, request *http
 	}
 
 	newCompany := &company.Company{}
-	newCompany.Name = dto.Name
+
+	updateModelFromDTO(dto, newCompany)
 
 	err = e.companies.Add(newCompany)
 	if err != nil {
@@ -223,14 +227,24 @@ func (e *EndpointCompanies) getCompany(writer http.ResponseWriter, request *http
 		return
 	}
 
-	//check if the permission is available
-	allowed, err := e.permissions.IsAllowed(user.GET_USER, usr)
-	if err != nil {
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
-		return
+	allowed := false
+	//check if it is the company of the current user
+	if usr.Company != nil && *usr.Company == companyId {
+		allowed = true
 	}
+
+	//check if the permission is available
 	if !allowed {
-		http.Error(writer, err.Error(), http.StatusForbidden)
+		tmp, err := e.permissions.IsAllowed(user.GET_USER, usr)
+		if err != nil {
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		allowed = tmp
+	}
+
+	if !allowed {
+		http.Error(writer, "", http.StatusForbidden)
 		return
 	}
 
@@ -247,6 +261,11 @@ func (e *EndpointCompanies) getCompany(writer http.ResponseWriter, request *http
 	//return the other user dto
 	WriteJSONBody(writer, newCompanyDTO(e.users, company))
 	return
+}
+
+func updateModelFromDTO(src *companyDTO, dst *company.Company) {
+	dst.Name = src.Name
+	dst.ThemePrimaryColor = src.ThemePrimaryColor
 }
 
 // A user needs the UPDATE permission.
@@ -289,7 +308,7 @@ func (e *EndpointCompanies) updateCompany(writer http.ResponseWriter, request *h
 		return
 	}
 
-	otherCompany.Name = dto.Name
+	updateModelFromDTO(dto, otherCompany)
 
 	//rewrite
 	err = e.companies.Update(otherCompany)

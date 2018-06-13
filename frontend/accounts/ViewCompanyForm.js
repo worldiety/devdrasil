@@ -46,10 +46,22 @@ class ViewCompanyForm extends Box {
 
         this.add(row);
 
+
+
+
+        let row2 = new LayoutGrid();
+        this.add(row2);
+        row2.widthMatchParent();
+        this.themeColorPrimary = new TextField();
+        this.themeColorPrimary.setCaption(ctx.getString("themeColorPrimary"));
+        this.themeColorPrimary.setText(company.themePrimaryColor);
+        this.themeColorPrimary.widthMatchParent();
+        row2.add(this.themeColorPrimary, 6);
+
+
         this.userList = new SelectedUserList(ctx, company);
         this.userList.refresh();
         this.add(this.userList);
-
 
         let btnRow = new LRLayout();
         this.btnCancel = new FlatButton();
@@ -83,11 +95,18 @@ class ViewCompanyForm extends Box {
             hasError = true;
         }
 
+        let isOk = /^#[0-9A-F]{6}$/i.test(this.themeColorPrimary.getText().trim());
+        if (!isOk) {
+            this.themeColorPrimary.setHelperText(this.uis.getString("field_is_not_hex_color"), true);
+            hasError = true;
+        }
+
         return hasError;
     }
 
     updateModel() {
         this.company.name = this.name.getText().trim();
+        this.company.themePrimaryColor = this.themeColorPrimary.getText().trim();
         this.userList.updateModel();
         return this.company;
     }

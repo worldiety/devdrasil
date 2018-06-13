@@ -5,10 +5,11 @@ export {CompanyRepository, Company}
 
 
 class Company {
-    constructor(id = "", name = "", users = []) {
+    constructor(id = "", name = "", users = [], themePrimaryColor = "") {
         this.id = id;
         this.name = name;
         this.users = users;
+        this.themePrimaryColor = themePrimaryColor;
     }
 }
 
@@ -27,7 +28,7 @@ class CompanyRepository extends DefaultRepository {
 
 
     fromJson(json) {
-        return new Company(json["Id"], json["Name"], json["Users"]);
+        return new Company(json["Id"], json["Name"], json["Users"], json["ThemePrimaryColor"]);
     }
 }
 

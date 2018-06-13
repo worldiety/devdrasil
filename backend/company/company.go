@@ -61,7 +61,7 @@ func (r *Companies) Add(group *Company) error {
 	return json.Put(group)
 }
 
-func (r *Companies) Update(group *Company) error {
+func (r *Companies) Update(company *Company) error {
 	tx := r.db.Partition(TABLE_COMPANY).Begin(true)
 	defer tx.Commit()
 
@@ -71,16 +71,16 @@ func (r *Companies) Update(group *Company) error {
 	}
 
 	//ensure unique name
-	myLowerCaseName := strings.ToLower(group.Name)
+	myLowerCaseName := strings.ToLower(company.Name)
 
 	//find other
 	for _, grp := range groups {
-		if strings.ToLower(grp.Name) == myLowerCaseName && group.Id != grp.Id {
-			return &db.NotUnique{group.Name}
+		if strings.ToLower(grp.Name) == myLowerCaseName && company.Id != grp.Id {
+			return &db.NotUnique{company.Name}
 		}
 	}
 	//update user
-	return r.crud.Update(TABLE_COMPANY, group)
+	return r.crud.Update(TABLE_COMPANY, company)
 }
 
 func (r *Companies) Delete(id db.PK) error {

@@ -41,6 +41,8 @@ class ExampleApp extends Application {
                 logoutItem.onclick = e => {
                     this.getSessionRepository().deleteSession().then(_ => {
                         this.getNavigation().forward(UISLogin.NAME());
+                        //perform a force reload
+                        location.reload(true);
                     });
 
                 };
