@@ -31,7 +31,7 @@ class DefaultUserInterfaceState extends UserInterfaceState {
         this.drawer = new Drawer();
 
         this.getApplication().getUserRepository().getSessionUser().then(user => {
-            if (user.company !== "") {
+            if (user.company != null && user.company !== "") {
                 this.getApplication().getCompanyRepository().get(user.company).then(company => {
                     this.applyCompanyTheme(company);
                 }).catch(err => {

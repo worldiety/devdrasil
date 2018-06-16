@@ -17,8 +17,6 @@ import (
 	"github.com/worldiety/devdrasil/backend/company"
 )
 
-
-
 type Devdrasil struct {
 	//Host is the ip or host name where the server listens
 	host string
@@ -47,6 +45,7 @@ type Devdrasil struct {
 	restUsers     *backend.EndpointUsers
 	restGroups    *backend.EndpointGroups
 	restCompanies *backend.EndpointCompanies
+	restMarket    *backend.EndpointMarket
 }
 
 func NewDevdrasil() *Devdrasil {
@@ -100,6 +99,7 @@ func NewDevdrasil() *Devdrasil {
 	devdrasil.restSessions = backend.NewEndpointSessions(devdrasil.mux, sessions, users)
 	devdrasil.restGroups = backend.NewEndpointGroups(devdrasil.mux, sessions, users, permissions, groups)
 	devdrasil.restCompanies = backend.NewEndpointCompanies(devdrasil.mux, sessions, users, permissions, companies)
+	devdrasil.restMarket = backend.NewEndpointStore(devdrasil.mux, sessions, users, permissions)
 
 	return devdrasil
 }
@@ -126,5 +126,3 @@ func (s *Devdrasil) Start() {
 	log.Printf("starting devdrasil at %s:%d...\n", s.host, s.port)
 	log.Fatal(http.ListenAndServe(s.host+":"+strconv.Itoa(s.port), nil))
 }
-
-

@@ -10,9 +10,11 @@
     <string name="accounts">Zugänge verwalten</string>
     <string name="manage_companies_hint">Verwalte hier die Firmen, um Nutzer zu organisieren.
     </string>
-    <string name="manage_groups_hint">Verwalte hier deine Gruppen, um einheitlich die Rechte und Eigenschaften von Nutzern zu kontrollieren.
+    <string name="manage_groups_hint">Verwalte hier deine Gruppen, um einheitlich die Rechte und Eigenschaften von
+        Nutzern zu kontrollieren.
     </string>
-    <string name="manage_users_hint">Verwalte hier deine Nutzer, um zusätzlich zu Gruppen individuelle Rechte und Eigenschaften zu setzen.
+    <string name="manage_users_hint">Verwalte hier deine Nutzer, um zusätzlich zu Gruppen individuelle Rechte und
+        Eigenschaften zu setzen.
     </string>
     <string name="your_users">Deine Nutzer</string>
     <string name="your_groups">Deine Gruppen</string>
@@ -35,7 +37,9 @@
     <string name="new_user">Nutzer hinzufügen</string>
     <string name="new_group">Gruppe hinzufügen</string>
     <string name="new_company">Firma hinzufügen</string>
-    <string name="password_weak">Das Kennwort ist zu schwach. Es muss mindestens aus 7 Zeichen, Groß- und Kleinbuchstaben sowie einem Sonderzeichen bestehen.</string>
+    <string name="password_weak">Das Kennwort ist zu schwach. Es muss mindestens aus 7 Zeichen, Groß- und
+        Kleinbuchstaben sowie einem Sonderzeichen bestehen.
+    </string>
     <string name="password">Kennwort</string>
     <string name="password_repeat">Kennwort wiederholen</string>
     <string name="passwords_unmatch">Die Kennwörter stimmen nicht überein.</string>
@@ -44,4 +48,6 @@
     <string name="x_employees">%s Mitarbeiter</string>
     <string name="themeColorPrimary">Primärfarbe</string>
     <string name="field_is_not_hex_color">Der Wert muss als hex angegeben werden, z.B. #aabbcc.</string>
+    <string name="market_store">Market</string>
+    <string name="search">Suchen</string>
 </resources>

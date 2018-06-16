@@ -71,7 +71,7 @@ func (e *EndpointGroups) groupVerbs(writer http.ResponseWriter, request *http.Re
 	}
 }
 
-// A user can list all groups, if he has the permission list user permissions
+// A user can list all groups, if he has the permission LIST_GROUPS
 //  @Path GET /groups
 //  @Header sid string
 //	@Body []github.com/worldiety/devdrasil/backend/groupListDTO
@@ -79,7 +79,7 @@ func (e *EndpointGroups) groupVerbs(writer http.ResponseWriter, request *http.Re
 //  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent | if user has not the permission)
 //  @Return 500 (for any other error)
 func (e *EndpointGroups) listGroups(writer http.ResponseWriter, request *http.Request) {
-	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.LIST_USERS)
+	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.LIST_GROUPS)
 	if usr == nil {
 		return
 	}
@@ -110,7 +110,7 @@ func (e *EndpointGroups) groupsVerbs(writer http.ResponseWriter, request *http.R
 	}
 }
 
-// A user can add another group, if he has the permission for adding user
+// A user can add another group, if he has the permission for ADDING_GROUPS
 //  @Path POST /groups
 //  @Header sid string
 //	@Body github.com/worldiety/devdrasil/backend/groupDTO
@@ -118,7 +118,7 @@ func (e *EndpointGroups) groupsVerbs(writer http.ResponseWriter, request *http.R
 //  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent | if user has not the permission)
 //  @Return 500 (for any other error)
 func (e *EndpointGroups) addGroup(writer http.ResponseWriter, request *http.Request) {
-	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.CREATE_USER)
+	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.CREATE_GROUP)
 	if usr == nil {
 		return
 	}
@@ -185,19 +185,19 @@ func (e *EndpointGroups) updateAllUsers(groupId db.PK, users []db.PK) error {
 	return nil
 }
 
-// A user can delete another group, if he has the permission (delete user)
+// A user can delete another group, if he has the permission DELETE_GROUP
 //  @Path DELETE /groups/{id}
 //  @Header sid string
 //	@Return 200
 //  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent | if user has not the permission)
 //  @Return 500 (for any other error)
 func (e *EndpointGroups) deleteGroup(writer http.ResponseWriter, request *http.Request, groupId db.PK) {
-	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.DELETE_USER)
+	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.DELETE_GROUP)
 	if usr == nil {
 		return
 	}
 
-	e.updateAllUsers(groupId,nil)
+	e.updateAllUsers(groupId, nil)
 	err := e.groups.Delete(groupId)
 	if err != nil {
 		if db.IsEntityNotFound(err) {
@@ -211,7 +211,7 @@ func (e *EndpointGroups) deleteGroup(writer http.ResponseWriter, request *http.R
 	WriteOK(writer)
 }
 
-// A user needs the GET_USER permission
+// A user needs the GET_GROUP permission
 //  @Path GET /groups/{id} (id is hex encoded group PK)
 //  @Header sid string
 //	@Return 200 github.com/worldiety/devdrasil/backend/groupDTO
@@ -224,7 +224,7 @@ func (e *EndpointGroups) getGroup(writer http.ResponseWriter, request *http.Requ
 	}
 
 	//check if the permission is available
-	allowed, err := e.permissions.IsAllowed(user.GET_USER, usr)
+	allowed, err := e.permissions.IsAllowed(user.GET_GROUP, usr)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
@@ -249,7 +249,7 @@ func (e *EndpointGroups) getGroup(writer http.ResponseWriter, request *http.Requ
 	return
 }
 
-// A user needs the UPDATE permission.
+// A user needs the UPDATE_GROUP permission.
 //  @Path PUT /groups/{id}
 //  @Header sid string
 //	@Body github.com/worldiety/devdrasil/backend/groupDTO
@@ -269,7 +269,7 @@ func (e *EndpointGroups) updateGroup(writer http.ResponseWriter, request *http.R
 	}
 
 	//check if the permission is available
-	allowed, err := e.permissions.IsAllowed(user.UPDATE_USER, usr)
+	allowed, err := e.permissions.IsAllowed(user.UPDATE_GROUP, usr)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return

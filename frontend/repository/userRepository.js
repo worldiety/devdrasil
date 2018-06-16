@@ -64,12 +64,13 @@ class UserPermissions {
      * @param {boolean} updateUser
      * @param {boolean} getUser
      */
-    constructor(listUsers, createUser, deleteUser, updateUser, getUser) {
+    constructor(listUsers, createUser, deleteUser, updateUser, getUser, listMarket) {
         this.listUsers = listUsers;
         this.createUser = createUser;
         this.deleteUser = deleteUser;
         this.updateUser = updateUser;
         this.getUser = getUser;
+        this.listMarket = listMarket;
 
     }
 }
@@ -90,7 +91,7 @@ class UserRepository extends DefaultRepository {
         return _requestUserPermissions(this.fetcher, session.sid, id).then(raw => {
             return throwFromHTTP(raw).then(raw => raw.json());
         }).then(json => {
-            return new UserPermissions(json["ListUsers"], json["CreateUser"], json["DeleteUser"], json["UpdateUser"], json["GetUser"]);
+            return new UserPermissions(json["ListUsers"], json["CreateUser"], json["DeleteUser"], json["UpdateUser"], json["GetUser"], json["ListMarket"]);
         });
 
     }

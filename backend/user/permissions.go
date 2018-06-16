@@ -11,6 +11,21 @@ var DELETE_USER = db.NewPK("DELETE_USER")
 var UPDATE_USER = db.NewPK("UPDATE_USER")
 var GET_USER = db.NewPK("GET_USER")
 
+var INSTALL_PLUGIN = db.NewPK("INSTALL_PLUGIN")
+var LIST_MARKET = db.NewPK("LIST_MARKET")
+
+var LIST_GROUPS = db.NewPK("LIST_GROUPS")
+var CREATE_GROUP = db.NewPK("CREATE_GROUP")
+var DELETE_GROUP = db.NewPK("DELETE_GROUP")
+var UPDATE_GROUP = db.NewPK("UPDATE_GROUP")
+var GET_GROUP = db.NewPK("GET_GROUP")
+
+var LIST_COMPANIES = db.NewPK("LIST_COMPANIES")
+var CREATE_COMPANY = db.NewPK("CREATE_COMPANY")
+var DELETE_COMPANY = db.NewPK("DELETE_COMPANY")
+var UPDATE_COMPANY = db.NewPK("UPDATE_COMPANY")
+var GET_COMPANY = db.NewPK("GET_COMPANY")
+
 type Permission struct {
 	//unique entity id, e.g. "0xaccc32"
 	Id db.PK
@@ -59,7 +74,7 @@ func NewPermissions(d *db.Database) (*Permissions, error) {
 	json := db.NewJSONDecorator(tx)
 
 	//ensure that at least for each permission, an empty entity is available
-	ensureEntities := []db.PK{LIST_USERS, CREATE_USER, DELETE_USER, UPDATE_USER, GET_USER}
+	ensureEntities := []db.PK{LIST_USERS, CREATE_USER, DELETE_USER, UPDATE_USER, GET_USER, INSTALL_PLUGIN, LIST_MARKET, LIST_GROUPS, CREATE_GROUP, DELETE_GROUP, UPDATE_GROUP, GET_GROUP, LIST_COMPANIES, CREATE_COMPANY, DELETE_COMPANY, UPDATE_COMPANY, GET_COMPANY}
 	for _, id := range ensureEntities {
 		if tx.Has(id) {
 			continue

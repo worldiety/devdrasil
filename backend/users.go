@@ -178,7 +178,7 @@ func (e *EndpointUsers) updateUser(writer http.ResponseWriter, request *http.Req
 			return
 		}
 		if !allowed {
-			http.Error(writer, err.Error(), http.StatusForbidden)
+			http.Error(writer, "", http.StatusForbidden)
 			return
 		}
 
@@ -398,6 +398,7 @@ type userPermissionDTO struct {
 	DeleteUser bool
 	UpdateUser bool
 	GetUser    bool
+	ListMarket bool
 }
 
 // A user can request the permissions, always from his own account, or if he has the list permission
@@ -437,12 +438,18 @@ func (e *EndpointUsers) queryPermissions(writer http.ResponseWriter, request *ht
 		return
 	}
 
+	listMarket, err := e.permissions.IsAllowed(user.LIST_MARKET, usr)
+	if AnyErrorAsInternalError(err, writer) {
+		return
+	}
+
 	dto := &userPermissionDTO{}
 	dto.ListUsers = listUser
 	dto.CreateUser = createUser
 	dto.DeleteUser = deleteUser
 	dto.UpdateUser = updateUser
 	dto.GetUser = getUser
+	dto.ListMarket = listMarket
 
 	WriteJSONBody(writer, dto)
 }

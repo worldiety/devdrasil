@@ -12,6 +12,8 @@ import {UISAddGroup} from "./accounts/UISAddGroup.js";
 import {UISEditGroup} from "./accounts/UISEditGroup.js";
 import {UISEditCompany} from "./accounts/UISEditCompany.js";
 import {UISAddCompany} from "./accounts/UISAddCompany.js";
+import {MarketRepository} from "./repository/MarketRepository.js";
+import {UISMarket} from "/frontend/market/UISMarket.js";
 
 class ExampleApp extends Application {
 
@@ -29,6 +31,7 @@ class ExampleApp extends Application {
         this.getNavigation().registerUserInterfaceState(UISEditGroup.NAME(), app => new UISEditGroup(app));
         this.getNavigation().registerUserInterfaceState(UISEditCompany.NAME(), app => new UISEditCompany(app));
         this.getNavigation().registerUserInterfaceState(UISAddCompany.NAME(), app => new UISAddCompany(app));
+        this.getNavigation().registerUserInterfaceState(UISMarket.NAME(), app => new UISMarket(app));
         this.setLocale("de");
         this.addTranslation("de", "/frontend/values-de/strings.xml");
         this.addTranslation("en", "/frontend/values-en/strings.xml");
@@ -51,6 +54,11 @@ class ExampleApp extends Application {
                     if (permissions.listUsers) {
                         let selected = this.getNavigation().getPendingName() === UISAccounts.NAME();
                         drawer.addMenuEntry("#" + UISAccounts.NAME(), new Icon("supervisor_account"), this.getString("accounts"), selected);
+                    }
+
+                    if (permissions.listMarket) {
+                        let selected = this.getNavigation().getPendingName() === UISMarket.NAME();
+                        drawer.addMenuEntry("#" + UISMarket.NAME(), new Icon("extension"), this.getString("market_store"), selected);
                     }
                 });
 
@@ -90,6 +98,13 @@ class ExampleApp extends Application {
             this.companyRepository = new CompanyRepository(this.getFetcher(), this.getSessionRepository());
         }
         return this.companyRepository;
+    }
+
+    getMarketRepository() {
+        if (this.marketRespository == null) {
+            this.marketRespository = new MarketRepository(this.getFetcher(), this.getSessionRepository());
+        }
+        return this.marketRespository;
     }
 
     validateSession() {

@@ -74,7 +74,7 @@ func (e *EndpointCompanies) companyVerbs(writer http.ResponseWriter, request *ht
 	}
 }
 
-// A user can list all companies, if he has the permission list user permissions
+// A user can list all companies, if he has the permission LIST_COMPANIES
 //  @Path GET /companies
 //  @Header sid string
 //	@Body []github.com/worldiety/devdrasil/backend/companyListDTO
@@ -82,7 +82,7 @@ func (e *EndpointCompanies) companyVerbs(writer http.ResponseWriter, request *ht
 //  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent | if user has not the permission)
 //  @Return 500 (for any other error)
 func (e *EndpointCompanies) listCompanies(writer http.ResponseWriter, request *http.Request) {
-	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.LIST_USERS)
+	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.LIST_COMPANIES)
 	if usr == nil {
 		return
 	}
@@ -113,7 +113,7 @@ func (e *EndpointCompanies) companiesVerbs(writer http.ResponseWriter, request *
 	}
 }
 
-// A user can add another company, if he has the permission for adding user
+// A user can add another company, if he has the permission CREATE_COMPANY
 //  @Path POST /companies
 //  @Header sid string
 //	@Body github.com/worldiety/devdrasil/backend/companyDTO
@@ -121,7 +121,7 @@ func (e *EndpointCompanies) companiesVerbs(writer http.ResponseWriter, request *
 //  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent | if user has not the permission)
 //  @Return 500 (for any other error)
 func (e *EndpointCompanies) addCompany(writer http.ResponseWriter, request *http.Request) {
-	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.CREATE_USER)
+	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.CREATE_COMPANY)
 	if usr == nil {
 		return
 	}
@@ -189,14 +189,14 @@ func (e *EndpointCompanies) updateAllUsers(companyId db.PK, users []db.PK) error
 	return nil
 }
 
-// A user can delete another company, if he has the permission (delete user)
+// A user can delete another company, if he has the permission DELETE_COMPANY
 //  @Path DELETE /companies/{id}
 //  @Header sid string
 //	@Return 200
 //  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent | if user has not the permission)
 //  @Return 500 (for any other error)
 func (e *EndpointCompanies) deleteCompany(writer http.ResponseWriter, request *http.Request, companyId db.PK) {
-	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.DELETE_USER)
+	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.DELETE_COMPANY)
 	if usr == nil {
 		return
 	}
@@ -215,7 +215,7 @@ func (e *EndpointCompanies) deleteCompany(writer http.ResponseWriter, request *h
 	WriteOK(writer)
 }
 
-// A user needs the GET_USER permission
+// A user needs the GET_COMPANY permission
 //  @Path GET /companies/{id} (id is hex encoded group PK)
 //  @Header sid string
 //	@Return 200 github.com/worldiety/devdrasil/backend/companyDTO
@@ -235,7 +235,7 @@ func (e *EndpointCompanies) getCompany(writer http.ResponseWriter, request *http
 
 	//check if the permission is available
 	if !allowed {
-		tmp, err := e.permissions.IsAllowed(user.GET_USER, usr)
+		tmp, err := e.permissions.IsAllowed(user.GET_COMPANY, usr)
 		if err != nil {
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
@@ -268,7 +268,7 @@ func updateModelFromDTO(src *companyDTO, dst *company.Company) {
 	dst.ThemePrimaryColor = src.ThemePrimaryColor
 }
 
-// A user needs the UPDATE permission.
+// A user needs the UPDATE_COMPANY permission.
 //  @Path PUT /companies/{id}
 //  @Header sid string
 //	@Body github.com/worldiety/devdrasil/backend/companyDTO
@@ -288,7 +288,7 @@ func (e *EndpointCompanies) updateCompany(writer http.ResponseWriter, request *h
 	}
 
 	//check if the permission is available
-	allowed, err := e.permissions.IsAllowed(user.UPDATE_USER, usr)
+	allowed, err := e.permissions.IsAllowed(user.UPDATE_COMPANY, usr)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
