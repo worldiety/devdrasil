@@ -60,32 +60,39 @@ class SearchListView extends Box {
 
     refresh() {
         this.removeAll();
+
+        this.listView = new ListView();
+        this.listView.setInteractive(true);
+
+
         this.searchView = new TextField();
         this.searchView.setCaption(this.ctx.getString("search"));
         this.searchView.widthMatchParent();
         this.searchView.setIcon(new Icon("search"));
         this.searchView.setAutoCompleteHandler(text => {
+            this.rebuildListView(text);
             let tmp = [];
             for (let word of this.index.findWord(text, 10)) {
                 let entry = new Body1(word);
                 entry.getElement().onclick = evt => {
                     this.searchView.setText(word);
+                    this.rebuildListView(text);
                 };
                 tmp.push(entry);
             }
             return tmp;
         });
         this.add(this.searchView);
+        this.rebuildListView();
 
-        let listView = new ListView();
-        listView.setInteractive(true);
-        for (let plugin of this.index.getPlugins()) {
-            let item = new TwoLineLeadingAndTrailingIcon(new Icon("account_circle"), plugin.getName(), plugin.getName(), null);
-            listView.add(item, true);
-        }
-
-        this.add(listView);
+        this.add(this.listView);
     }
 
-
+    rebuildListView(text = "") {
+        this.listView.removeAll();
+        for (let plugin of this.index.getPlugins(text)) {
+            let item = new TwoLineLeadingAndTrailingIcon(new Icon("account_circle"), plugin.getName(), plugin.getName(), null);
+            this.listView.add(item, true);
+        }
+    }
 }

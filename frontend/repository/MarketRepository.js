@@ -10,13 +10,22 @@ class MarketIndex {
     }
 
     /**
-     *
+     * @param {string} filter
      * @returns {Array<Plugin>}
      */
-    getPlugins() {
+    getPlugins(filter = "") {
         let tmp = [];
         for (let plugin of this.json["plugins"]) {
-            tmp.push(new Plugin(this, plugin));
+            if (filter === "") {
+                tmp.push(new Plugin(this, plugin));
+            } else {
+                let res = new Set();
+                nestSearch(plugin, filter, 1, res);
+                if (res.size > 0) {
+                    tmp.push(new Plugin(this, plugin));
+                }
+            }
+
         }
         return tmp;
     }
@@ -26,10 +35,10 @@ class MarketIndex {
      *
      * @param {string} text
      * @param {int} max
-     * @return {Array<string>}
+     * @return {Set<string>}
      */
     findWord(text, max) {
-        let res = [];
+        let res = new Set();
         nestSearch(this.json, text, max, res);
         return res
     }
@@ -41,10 +50,23 @@ function nestSearch(root, text, max, res) {
         let value = root[key];
         if (typeof value === 'string') {
             if (value.toLowerCase().indexOf(text) >= 0) {
-                res.push(value);
+                res.add(value);
             }
         } else {
-            nestSearch(value, text, max, res);
+            if (Array.isArray(value)) {
+                for (let entry of value) {
+                    if (typeof value === 'string') {
+                        if (value.toLowerCase().indexOf(text) >= 0) {
+                            set.add(value);
+                        }
+                    } else {
+                        nestSearch(value, text, max, res);
+                    }
+                }
+            } else {
+                nestSearch(value, text, max, res);
+            }
+
         }
         if (res.length >= max) {
             return res
