@@ -49,6 +49,9 @@ function nestSearch(root, text, max, res) {
     for (let key in root) {
         let value = root[key];
         if (typeof value === 'string') {
+            if (value.startsWith("http")) {
+                continue;
+            }
             if (value.toLowerCase().indexOf(text) >= 0) {
                 res.add(value);
             }
@@ -57,10 +60,13 @@ function nestSearch(root, text, max, res) {
                 for (let entry of value) {
                     if (typeof value === 'string') {
                         if (value.toLowerCase().indexOf(text) >= 0) {
-                            set.add(value);
+                            res.add(value);
                         }
                     } else {
                         nestSearch(value, text, max, res);
+                    }
+                    if (res.length >= max) {
+                        return res
                     }
                 }
             } else {
