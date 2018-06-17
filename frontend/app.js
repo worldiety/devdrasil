@@ -14,6 +14,7 @@ import {UISEditCompany} from "./accounts/UISEditCompany.js";
 import {UISAddCompany} from "./accounts/UISAddCompany.js";
 import {MarketRepository} from "./repository/MarketRepository.js";
 import {UISMarket} from "/frontend/market/UISMarket.js";
+import {UISMarketPlugin} from "/frontend/market/UISMarketPlugin.js";
 
 class ExampleApp extends Application {
 
@@ -32,6 +33,7 @@ class ExampleApp extends Application {
         this.getNavigation().registerUserInterfaceState(UISEditCompany.NAME(), app => new UISEditCompany(app));
         this.getNavigation().registerUserInterfaceState(UISAddCompany.NAME(), app => new UISAddCompany(app));
         this.getNavigation().registerUserInterfaceState(UISMarket.NAME(), app => new UISMarket(app));
+        this.getNavigation().registerUserInterfaceState(UISMarketPlugin.NAME(), app => new UISMarketPlugin(app));
         this.setLocale("de");
         this.addTranslation("de", "/frontend/values-de/strings.xml");
         this.addTranslation("en", "/frontend/values-en/strings.xml");

@@ -1,7 +1,7 @@
 import {Fetcher, throwFromHTTP} from "/wwt/components.js";
 import {SessionProvider} from "./DefaultRepository.js";
 
-export {MarketRepository, Plugin, MarketIndex}
+export {MarketRepository, Plugin, MarketIndex, Vendor}
 
 
 class MarketIndex {
@@ -23,11 +23,46 @@ class MarketIndex {
                 nestSearch(plugin, filter, 1, res);
                 if (res.size > 0) {
                     tmp.push(new Plugin(this, plugin));
+                } else {
+                    //if not found for plugin, check it's vendor
+                    nestSearch(this.getVendor(plugin["vendor"]), filter, 1, res);
+                    if (res.size > 0) {
+                        tmp.push(new Plugin(this, plugin));
+                    }
                 }
             }
 
+
         }
         return tmp;
+    }
+
+    /**
+     *
+     * @param id
+     * @returns {Plugin|null}
+     */
+    getPlugin(id) {
+        for (let plugin of this.json["plugins"]) {
+            if (plugin["id"] === id) {
+                return new Plugin(this, plugin);
+            }
+        }
+        return null;
+    }
+
+    /**
+     *
+     * @param id
+     * @returns {Vendor|null}
+     */
+    getVendor(id) {
+        for (let vendor of this.json["vendors"]) {
+            if (vendor["id"] === id) {
+                return new Vendor(this, vendor);
+            }
+        }
+        return null;
     }
 
     /**
@@ -52,6 +87,9 @@ function nestSearch(root, text, max, res) {
             if (value.startsWith("http")) {
                 continue;
             }
+            if (value === "") {
+                continue;
+            }
             if (value.toLowerCase().indexOf(text) >= 0) {
                 res.add(value);
             }
@@ -59,6 +97,12 @@ function nestSearch(root, text, max, res) {
             if (Array.isArray(value)) {
                 for (let entry of value) {
                     if (typeof value === 'string') {
+                        if (value.startsWith("http")) {
+                            continue;
+                        }
+                        if (value === "") {
+                            continue;
+                        }
                         if (value.toLowerCase().indexOf(text) >= 0) {
                             res.add(value);
                         }
@@ -80,14 +124,49 @@ function nestSearch(root, text, max, res) {
     }
 }
 
-class Plugin {
-    constructor(index, json) {
-        this.index = index;
+class Vendor {
+    constructor(parent, json) {
+        this.parent = parent;
         this.json = json;
     }
 
     getName() {
         return this.json["name"];
+    }
+}
+
+class Plugin {
+    constructor(parent, json) {
+        this.parent = parent;
+        this.json = json;
+    }
+
+    getName() {
+        return this.json["name"];
+    }
+
+    getIcon() {
+        return this.json["iconUrl"];
+    }
+
+    getId() {
+        return this.json["id"];
+    }
+
+    /**
+     *
+     * @returns {Vendor}
+     */
+    getVendor() {
+        return this.parent.getVendor(this.json["vendor"]);
+    }
+
+    /**
+     *
+     * @returns {Array<string>}
+     */
+    getCategories() {
+        return this.json["categories"];
     }
 }
 

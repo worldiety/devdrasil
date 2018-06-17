@@ -1,13 +1,13 @@
 import {CenterBox, CircularProgressIndicator,} from "/wwt/components.js";
 import {DefaultUserInterfaceState, Main} from "/frontend/uis-default.js";
-import {ViewSearchList} from "./ViewSearchList.js";
+import {ViewDetails} from "./ViewDetails.js";
 
-export {UISMarket}
+export {UISMarketPlugin}
 
-class UISMarket extends DefaultUserInterfaceState {
+class UISMarketPlugin extends DefaultUserInterfaceState {
 
     static NAME() {
-        return "/market";
+        return "/market/plugin";
     }
 
     constructor(app) {
@@ -16,19 +16,18 @@ class UISMarket extends DefaultUserInterfaceState {
 
     apply() {
         super.apply();
+        let id = this.getNavigation().getSearchParam("id");
         this.topBar.setTitle(this.getString("market_store"));
 
         this.getApplication().getMarketRepository().getIndex().then(index => {
+            let plugin = index.getPlugin(id);
+            this.topBar.setTitle(plugin.getName());
             let card = new Main();
-            let list = new ViewSearchList(this);
-            let query = this.getNavigation().getSearchParam("q");
-            if (query == null) {
-                query = "";
-            }
-            list.setModel(index, query);
 
 
-            card.add(list);
+            let details = new ViewDetails(this, index);
+            details.setModel(plugin);
+            card.add(details);
             this.setContent(card);
         }).catch(err => this.handleDefaultError(err));
 

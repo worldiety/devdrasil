@@ -26,6 +26,8 @@ type Plugin struct {
 	PrivacyPolicyUrl string   `json:"privacyPolicyUrl"`
 	TermsUrl         string   `json:"termsUrl"`
 	Keywords         []string `json:"keywords"`
+	Categories       []string `json:"categories"`
+	IconUrl          string   `json:"iconUrl"`
 }
 
 type Vendor struct {
