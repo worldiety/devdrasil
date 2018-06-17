@@ -28,6 +28,7 @@ type Plugin struct {
 	Keywords         []string `json:"keywords"`
 	Categories       []string `json:"categories"`
 	IconUrl          string   `json:"iconUrl"`
+	Rating           *Rating  `json:"rating"`
 }
 
 type Vendor struct {
@@ -56,6 +57,22 @@ type Sale struct {
 type Source struct {
 	Type string `json:"type"`
 	Url  string `json:"url"`
+}
+
+type Rating struct {
+	Stars5   int        `json:"s5"`
+	Stars4   int        `json:"s4"`
+	Stars3   int        `json:"s3"`
+	Stars2   int        `json:"s2"`
+	Stars1   int        `json:"s1"`
+	Comments []*Comment `json:"comments"`
+}
+
+type Comment struct {
+	From  string `json:"s5"`
+	Stars int    `json:"stars"`
+	Date  int64  `json:"date"`
+	Text  string `json:"text"`
 }
 
 type Store struct {

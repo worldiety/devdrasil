@@ -12,7 +12,9 @@ import {
     Image,
     LayoutGrid,
     ListView,
+    LRLayout,
     P,
+    RaisedButton,
     TextField,
     TwoLineLeadingAndTrailingIcon
 } from "/wwt/components.js";
@@ -69,7 +71,44 @@ class ViewDetails extends Box {
 
 
         header.add(icon, 2);
-        header.add(box, 10)
+        header.add(box, 10);
+
+
+        let rateAndInstallBox = new Box();
+        let rating = this.plugin.getRatings();
+
+        let fontSize = "13px";
+        let starBox = new Box();
+        starBox.getElement().style.color = "#616161";
+
+        for (let i = 0; i < 5; i++) {
+            let ico = new Icon("star");
+            ico.getElement().style.verticalAlign = "middle";
+            ico.getElement().style.fontSize = fontSize;
+            starBox.add(ico);
+        }
+        let numOfStars = new Body1(rating.countStars() + "");
+        numOfStars.getElement().style.display = "inline-block";
+        numOfStars.getElement().style.verticalAlign = "middle";
+        numOfStars.getElement().style.fontSize = fontSize;
+        numOfStars.getElement().style.marginLeft = "3px";
+        numOfStars.getElement().style.marginRight = "3px";
+        starBox.add(numOfStars);
+
+        let ico = new Icon("person");
+        ico.getElement().style.verticalAlign = "middle";
+        ico.getElement().style.fontSize = fontSize;
+        starBox.add(ico);
+        rateAndInstallBox.add(starBox);
+
+        let btnInstall = new RaisedButton();
+        btnInstall.setText("install");
+        btnInstall.getElement().style.cssFloat = "right";
+        rateAndInstallBox.add(btnInstall);
+
+        let alignRight = new LRLayout();
+        alignRight.addRight(rateAndInstallBox);
+        box.add(alignRight);
 
         this.add(header);
     }

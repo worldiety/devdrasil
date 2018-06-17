@@ -1,7 +1,7 @@
 import {Fetcher, throwFromHTTP} from "/wwt/components.js";
 import {SessionProvider} from "./DefaultRepository.js";
 
-export {MarketRepository, Plugin, MarketIndex, Vendor}
+export {MarketRepository, Plugin, MarketIndex, Vendor, Rating}
 
 
 class MarketIndex {
@@ -167,6 +167,57 @@ class Plugin {
      */
     getCategories() {
         return this.json["categories"];
+    }
+
+    /**
+     *
+     * @returns {Rating}
+     */
+    getRatings() {
+        return new Rating(this, this.json["rating"])
+    }
+}
+
+class Rating {
+    /**
+     *
+     * @param {Plugin} parent
+     * @param json
+     */
+    constructor(parent, json) {
+        this.parent = parent;
+        this.json = json;
+    }
+
+    /**
+     *
+     * @param {boolean} stars5
+     * @param {boolean} stars4
+     * @param {boolean} stars3
+     * @param {boolean} stars2
+     * @param {boolean} stars1
+     * @return {int}
+     */
+    countStars(stars5 = true, stars4 = true, stars3 = true, stars2 = true, stars1 = true) {
+        let sum = 0;
+        if (stars5) {
+            sum += this.json["s5"];
+        }
+
+        if (stars4) {
+            sum += this.json["s4"];
+        }
+
+        if (stars3) {
+            sum += this.json["s3"];
+        }
+        if (stars2) {
+            sum += this.json["s2"];
+        }
+        if (stars1) {
+            sum += this.json["s1"];
+        }
+        return sum;
     }
 }
 
