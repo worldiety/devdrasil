@@ -50,4 +50,7 @@
     <string name="field_is_not_hex_color">Der Wert muss als hex angegeben werden, z.B. #aabbcc.</string>
     <string name="market_store">Market</string>
     <string name="search">Suchen</string>
+    <string name="ratings">Bewertungen</string>
+    <string name="install">Installieren</string>
+    <string name="locale">de-DE</string>
 </resources>

@@ -1,5 +1,6 @@
 import {
     Body1,
+    Body2,
     Box,
     Card,
     CenterBox,
@@ -8,13 +9,18 @@ import {
     H4,
     H5,
     H6,
+    HR,
     Icon,
     Image,
     LayoutGrid,
     ListView,
     LRLayout,
     P,
+    PullRightBox,
     RaisedButton,
+    RoundedIcon,
+    Span,
+    StarBox,
     TextField,
     TwoLineLeadingAndTrailingIcon
 } from "/wwt/components.js";
@@ -22,6 +28,9 @@ import {DefaultUserInterfaceState, Main} from "/frontend/uis-default.js";
 import {UISMarket} from "./UISMarket.js";
 
 export {ViewDetails}
+
+//some random colors from https://material.io/design/color/the-color-system.html#tools-for-picking-colors
+const colorTable = ["#B71C1C", "#AD1457", "#6A1B9A", "#9575CD", "#4527A0", "#311B92", "#283593", "#1976D2", "#0288D1", "#00695C", "#388E3C", "#558B2F", "#E65100", "#A1887F", "#757575", "#DD2C00", "#455A64"];
 
 class ViewDetails extends Box {
     /**
@@ -43,17 +52,24 @@ class ViewDetails extends Box {
         this.plugin = plugin;
         this.removeAll();
 
-        let header = new LayoutGrid();
+        let header = new Box();
+        //without overflow, the height with child-float-elements will be zero
+        header.getElement().style.overflow = "auto";
+        header.getElement().style.width = "100%";
         let icon = new Image();
-        icon.getElement().style.width = "100%";
+        icon.getElement().style.width = "72px";
+        icon.getElement().style.cssFloat = "left";
+        icon.getElement().style.marginRight = "16px";
         icon.setSrc(this.plugin.getIcon());
 
 
+        //the section at the right of the icon has a fixed with of 70%, if it does not fit it will break, looks fine for smartphones
         let box = new Box();
-        box.add(new H4(this.plugin.getName()));
+        box.getElement().style.width = "70%";
+        box.getElement().style.cssFloat = "left";
+        box.add(new H6(this.plugin.getName()));
 
         //add cross links for vendor and categories
-        box.add(new Body1());
         let crossLinks = [];
         crossLinks.push(this.plugin.getVendor().getName());
         for (let category of this.plugin.getCategories()) {
@@ -62,6 +78,7 @@ class ViewDetails extends Box {
 
         for (let query of crossLinks) {
             let vendorLink = new FlatButton(query);
+            vendorLink.getElement().style.fontSize = "13px";
             vendorLink.setOnClick(_ => {
                 this.ctx.getNavigation().forward(UISMarket.NAME(), {q: query});
             });
@@ -70,47 +87,109 @@ class ViewDetails extends Box {
         }
 
 
-        header.add(icon, 2);
-        header.add(box, 10);
+        header.add(icon);
+        header.add(box);
 
 
-        let rateAndInstallBox = new Box();
         let rating = this.plugin.getRatings();
 
-        let fontSize = "13px";
-        let starBox = new Box();
-        starBox.getElement().style.color = "#616161";
 
-        for (let i = 0; i < 5; i++) {
-            let ico = new Icon("star");
-            ico.getElement().style.verticalAlign = "middle";
-            ico.getElement().style.fontSize = fontSize;
-            starBox.add(ico);
-        }
-        let numOfStars = new Body1(rating.countStars() + "");
-        numOfStars.getElement().style.display = "inline-block";
-        numOfStars.getElement().style.verticalAlign = "middle";
-        numOfStars.getElement().style.fontSize = fontSize;
-        numOfStars.getElement().style.marginLeft = "3px";
-        numOfStars.getElement().style.marginRight = "3px";
-        starBox.add(numOfStars);
+        let starBox = new StarBox();
+        starBox.setModel(rating.asMap());
 
-        let ico = new Icon("person");
-        ico.getElement().style.verticalAlign = "middle";
-        ico.getElement().style.fontSize = fontSize;
-        starBox.add(ico);
-        rateAndInstallBox.add(starBox);
+        starBox.getElement().style.cssFloat = "right";
 
         let btnInstall = new RaisedButton();
-        btnInstall.setText("install");
+        btnInstall.setText(this.ctx.getString("install"));
         btnInstall.getElement().style.cssFloat = "right";
-        rateAndInstallBox.add(btnInstall);
 
-        let alignRight = new LRLayout();
-        alignRight.addRight(rateAndInstallBox);
-        box.add(alignRight);
 
         this.add(header);
+
+
+        this.add(new PullRightBox(starBox));
+        this.add(new PullRightBox(btnInstall));
+
+        this.add(new HR());
+
+        this.add(new Body1(this.ctx.getString("ratings")));
+
+        for (let comment of rating.getComments()) {
+            let viewComment = new ViewComment(this.ctx);
+            viewComment.setModel(comment);
+            this.add(viewComment);
+        }
+
     }
 
 }
+
+
+class ViewComment extends Box {
+    /**
+     *
+     * @param {DefaultUserInterfaceState} ctx
+     */
+    constructor(ctx) {
+        super();
+        this.ctx = ctx;
+        this.getElement().style.overflow = "auto";
+    }
+
+    /**
+     *
+     * @param {Comment} comment
+     */
+    setModel(comment) {
+        this.removeAll();
+
+        let rightSide = new Box();
+        rightSide.add(new H6(comment.getFrom()));
+        rightSide.getElement().style.cssFloat = "left";
+
+        let ratingBox = new Box();
+        for (let i = 0; i < 5; i++) {
+            let ico = null;
+            if (i + 1 <= comment.getStars()) {
+                ico = new Icon("star");
+            } else {
+                ico = new Icon("star_border");
+            }
+            ico.getElement().style.verticalAlign = "middle";
+            ico.getElement().style.fontSize = "var(--small-text-size)";
+            ico.getElement().style.color = "var(--light-text-color)";
+            ratingBox.add(ico);
+        }
+        let when = new Date(comment.getDate() * 1000).toLocaleDateString(this.ctx.getString("locale"), {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        let time = new Body2(when);
+        time.getElement().style.display = "inline-block";
+        time.getElement().style.verticalAlign = "middle";
+        time.getElement().style.margin = "3px";
+        time.getElement().style.color = "var(--light-text-color)";
+        time.getElement().style.fontSize = "var(--small-text-size)";
+        ratingBox.add(time);
+        rightSide.add(ratingBox);
+
+        let text = new Body2(comment.getText());
+        text.getElement().style.marginTop = "0";
+        rightSide.add(text);
+
+
+        let avatar = new RoundedIcon();
+        let firstChar = comment.getFrom().substring(0, 1);
+        avatar.setIcon(new Span(firstChar));
+        avatar.getElement().style.cssFloat = "left";
+        avatar.getElement().style.marginRight = "8px";
+        avatar.getElement().style.backgroundColor = colorTable[firstChar.charCodeAt(0) % (colorTable.length - 1)];
+        this.add(avatar);
+
+        this.add(rightSide);
+    }
+}
+
+

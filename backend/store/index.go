@@ -69,7 +69,7 @@ type Rating struct {
 }
 
 type Comment struct {
-	From  string `json:"s5"`
+	From  string `json:"from"`
 	Stars int    `json:"stars"`
 	Date  int64  `json:"date"`
 	Text  string `json:"text"`

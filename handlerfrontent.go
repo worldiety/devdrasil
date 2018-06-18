@@ -19,13 +19,13 @@ func installFrontendHandler(server *Devdrasil) {
 	wwtDir := filepath.Join(server.cwd, "wwt", "wwt")
 	assertDir(wwtDir)
 	log.Printf("wwt served from %s\n", wwtDir)
-	http.Handle("/wwt/", http.StripPrefix("/wwt", http.FileServer(http.Dir(wwtDir))))
+	http.Handle("/wwt/", NoCache(http.StripPrefix("/wwt", http.FileServer(http.Dir(wwtDir)))))
 
 	//serve the frontend javascript app
 	appDir := filepath.Join(server.cwd, "devdrasil", "frontend")
 	assertDir(appDir)
 	log.Printf("frontend served from %s\n", appDir)
-	http.Handle("/frontend/", http.StripPrefix("/frontend", http.FileServer(http.Dir(appDir))))
+	http.Handle("/frontend/", NoCache(http.StripPrefix("/frontend", http.FileServer(http.Dir(appDir)))))
 
 	//everything else redirects to the html root
 	server.mux.HandleFunc("/", handler.handleRoot)
@@ -61,13 +61,11 @@ func (h *frontendHandler) handleRoot(writer http.ResponseWriter, request *http.R
 	sb.WriteString(`<meta name="apple-mobile-web-app-title" content="demo wwt app">`)
 	sb.WriteString("\n")
 
-
 	sb.WriteString(`<meta name="viewport" content="width=device-width, minimum-scale=1.0,initial-scale=1 maximum-scale=1 user-scalable=0 minimal-ui"/>`)
 	sb.WriteString("\n")
 
 	sb.WriteString(`<link rel="stylesheet" href="/wwt/mcw.min.css"/>`)
 	sb.WriteString("\n")
-
 
 	sb.WriteString(`<link rel="stylesheet" href="/wwt/material_icons.css">`)
 	sb.WriteString("\n")

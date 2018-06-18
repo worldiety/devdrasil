@@ -189,35 +189,58 @@ class Rating {
         this.json = json;
     }
 
+
+    /**
+     * @return {Map<int,int>}
+     */
+    asMap() {
+        let res = new Map();
+        res.set(1, this.json["s1"]);
+        res.set(2, this.json["s2"]);
+        res.set(3, this.json["s3"]);
+        res.set(4, this.json["s4"]);
+        res.set(5, this.json["s5"]);
+        return res;
+    }
+
     /**
      *
-     * @param {boolean} stars5
-     * @param {boolean} stars4
-     * @param {boolean} stars3
-     * @param {boolean} stars2
-     * @param {boolean} stars1
-     * @return {int}
+     * @return {Array<Comment>}
      */
-    countStars(stars5 = true, stars4 = true, stars3 = true, stars2 = true, stars1 = true) {
-        let sum = 0;
-        if (stars5) {
-            sum += this.json["s5"];
+    getComments() {
+        let tmp = [];
+        for (let comment of this.json["comments"]) {
+            tmp.push(new Comment(this, comment));
         }
+        return tmp;
+    }
+}
 
-        if (stars4) {
-            sum += this.json["s4"];
-        }
+class Comment {
+    /**
+     *
+     * @param {Rating} parent
+     * @param json
+     */
+    constructor(parent, json) {
+        this.parent = parent;
+        this.json = json;
+    }
 
-        if (stars3) {
-            sum += this.json["s3"];
-        }
-        if (stars2) {
-            sum += this.json["s2"];
-        }
-        if (stars1) {
-            sum += this.json["s1"];
-        }
-        return sum;
+    getStars() {
+        return this.json["stars"];
+    }
+
+    getDate() {
+        return this.json["date"];
+    }
+
+    getText() {
+        return this.json["text"];
+    }
+
+    getFrom() {
+        return this.json["from"];
     }
 }
 
