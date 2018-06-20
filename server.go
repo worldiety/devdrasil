@@ -63,7 +63,10 @@ func NewDevdrasil() *Devdrasil {
 		log.Fatalf("failed to get the current working dir: %s\n", e)
 	}
 
-	cwd := *flag.String("resources", pcwd, "The working dir with the resources")
+	flagCwd := flag.String("resources", pcwd, "The working dir with the resources")
+	flagHost := flag.String("host", "0.0.0.0", "A host name or ip address to which devdrasil is bound")
+	flagPort := flag.Int("port", 8080, "The port on which devdrasil listens")
+	flag.Parse()
 
 	devdrasil := &Devdrasil{}
 	devdrasil.workspace = filepath.Join(home, ".devdrasil")
@@ -72,11 +75,11 @@ func NewDevdrasil() *Devdrasil {
 	devdrasil.plugins = filepath.Join(devdrasil.workspace, "plugins")
 	ensureDir(devdrasil.plugins)
 
-	devdrasil.cwd = cwd
+	devdrasil.cwd = *flagCwd
 
 	devdrasil.db = db.Open(ensureDir(filepath.Join(devdrasil.workspace, "db")))
-	devdrasil.host = *flag.String("host", "0.0.0.0", "A host name or ip address to which devdrasil is bound")
-	devdrasil.port = *flag.Int("port", 8080, "The port on which devdrasil listens")
+	devdrasil.host = *flagHost
+	devdrasil.port = *flagPort
 
 	devdrasil.mux = http.DefaultServeMux
 
