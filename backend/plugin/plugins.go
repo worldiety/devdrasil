@@ -1,7 +1,6 @@
 package plugin
 
-import "github.com/worldiety/devdrasil/db"
-
+/*
 const TABLE_PLUGIN = "plugin"
 
 type Plugin struct {
@@ -77,3 +76,5 @@ func (r *Plugins) Delete(id db.PK) error {
 func (r *Plugins) Update(plugin *Plugin) error {
 	return r.crud.Update(TABLE_PLUGIN, plugin)
 }
+
+*/

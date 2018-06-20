@@ -42,9 +42,12 @@ func (e *EndpointMarket) getIndex(writer http.ResponseWriter, request *http.Requ
 	WriteJSONBody(writer, index)
 }
 
-/*
-
- */
+// Requires permissions INSTALL_PLUGIN
+//  @Path POST /market/install/{id}
+//  @Header sid string
+//	@Return 200 github.com/worldiety/devdrasil/backend/?
+//  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent)
+//  @Return 500 (for any other error)
 func (e *EndpointMarket) installPlugin(writer http.ResponseWriter, request *http.Request) {
 
 }

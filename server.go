@@ -58,10 +58,12 @@ func NewDevdrasil() *Devdrasil {
 		log.Fatal("the 'HOME' environment variable is missing")
 	}
 
-	cwd, e := os.Getwd()
+	pcwd, e := os.Getwd()
 	if e != nil {
 		log.Fatalf("failed to get the current working dir: %s\n", e)
 	}
+
+	cwd := *flag.String("resources", pcwd, "The working dir with the resources")
 
 	devdrasil := &Devdrasil{}
 	devdrasil.workspace = filepath.Join(home, ".devdrasil")

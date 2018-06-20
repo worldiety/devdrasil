@@ -3,13 +3,12 @@ package tools
 import (
 	"bufio"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
 	"strings"
-	"worldiety.net/scm/git/prj-ops-controller.git/api"
 	"sync"
+	"fmt"
 )
 
 type LogLevel int
@@ -34,57 +33,9 @@ func NewEnv() *Env {
 	return env
 }
 
-func NewLogCapturedEnv() (env *Env, buf *strings.Builder) {
-	env = &Env{}
-	buf = &strings.Builder{}
-	dispatcher := &WriterDispatcher{}
-	dispatcher.Writer = append(dispatcher.Writer, os.Stdout, buf)
-	env.consoleLoggerInfo = log.New(dispatcher, "INFO ", log.Ldate|log.Ltime|log.Lmicroseconds)
-	env.consoleLoggerError = log.New(dispatcher, "ERROR ", log.Ldate|log.Ltime|log.Lmicroseconds)
-	env.Variables = make(map[string]string)
-	return env, buf
-}
+//executes and blocks until the program exists. This will by-pass any configured logger. All stdout and errout is captured into the returned buffer
+func (env *Env) ExecCapture(cmdName string, cmdArgs ...string) ([]byte, error) {
 
-func NewLogViewCapturedEnv() (env *Env, buf *WriterDispatcherLogFileView) {
-	env = &Env{}
-	dispatcher := &WriterDispatcherLogFileView{}
-	dispatcher.Delegate = os.Stdout
-	dispatcher.LogFileView = &api.LogFileView{}
-	env.consoleLoggerInfo = log.New(dispatcher, "INFO ", log.Ldate|log.Ltime|log.Lmicroseconds)
-	env.consoleLoggerError = log.New(dispatcher, "ERROR ", log.Ldate|log.Ltime|log.Lmicroseconds)
-	env.Variables = make(map[string]string)
-	return env, dispatcher
-}
-
-func (e *Env) Logf(level LogLevel, format string, args ...interface{}) {
-	switch level {
-	case INFO:
-		e.consoleLoggerInfo.Printf(format, args...)
-	case ERROR:
-		e.consoleLoggerError.Printf(format, args...)
-	}
-}
-
-func (e *Env) Log(level LogLevel, text string) {
-	switch level {
-	case INFO:
-		e.consoleLoggerInfo.Println(text)
-	case ERROR:
-		e.consoleLoggerError.Println(text)
-	}
-}
-
-func ExecDump(env *Env, out io.Writer, cmdName string, cmdArgs ...string) error {
-
-	for key, value := range env.Variables {
-		env.Logf(INFO, "SET %s=%s", key, value)
-	}
-
-	tmp := cmdName
-	for _, arg := range cmdArgs {
-		tmp += " " + arg
-	}
-	env.Logf(INFO, tmp)
 	cmd := exec.Command(cmdName, cmdArgs...)
 	cmd.Dir = env.Dir
 	cmd.Env = make([]string, 0)
@@ -96,49 +47,25 @@ func ExecDump(env *Env, out io.Writer, cmdName string, cmdArgs ...string) error 
 		cmd.Env = append(cmd.Env, key+"="+value)
 	}
 
-	cmdStdReader, err := cmd.StdoutPipe()
+	buf, err := cmd.CombinedOutput()
+
 	if err != nil {
-		env.Logf(ERROR, "Error creating StdoutPipe for %s [%s]: %s", cmdName, cmdArgs, err)
-		return err
+		env.Logf(ERROR, "Error failed to execute cmd: %s", err)
+		return buf, err
 	}
 
-	cmdErrReader, err := cmd.StderrPipe()
-	if err != nil {
-		env.Logf(ERROR, "Error creating StderrPipe for %s [%s]: %s", cmdName, cmdArgs, err)
-		return err
-	}
-
-	scannerErr := bufio.NewScanner(cmdErrReader)
-	go func() {
-		for scannerErr.Scan() {
-			txt := scannerErr.Text()
-			env.Log(ERROR, txt)
-		}
-	}()
-
-	err = cmd.Start()
-	if err != nil {
-		env.Logf(ERROR, "Error starting Cmd: %s", err)
-		return err
-	}
-
-	b, e := ioutil.ReadAll(cmdStdReader)
-	if e != nil {
-		env.Logf(ERROR, "Error consuming out for %s [%s]: %s", cmdName, cmdArgs, err)
-		return err
-	}
-	out.Write(b)
-
-	err = cmd.Wait()
-	if err != nil {
-		env.Logf(ERROR, "Error waiting for Cmd: %s", err)
-		return err
-	}
-
-	return nil
+	return buf, nil
 }
 
-func Exec(env *Env, out *[]string, cmdName string, cmdArgs ...string) error {
+//just like ExecPipe but interprets everything as a line
+func (env *Env) ExecLines(cmdName string, cmdArgs ...string) ([]string, error) {
+	buf, err := env.ExecCapture(cmdName, cmdArgs...)
+	lines := strings.Split(string(buf), "\n")
+	return lines, err
+}
+
+//the default execution
+func (env *Env) Exec(onNewStdOut func(string), onNewErrOut func(string), cmdName string, cmdArgs ...string) error {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	for key, value := range env.Variables {
@@ -164,7 +91,8 @@ func Exec(env *Env, out *[]string, cmdName string, cmdArgs ...string) error {
 	cmdStdReader, err := cmd.StdoutPipe()
 	if err != nil {
 		env.Logf(ERROR, "Error creating StdoutPipe for %s [%s]: %s", cmdName, cmdArgs, err)
-		return err
+		return fmt.Errorf()
+		err
 	}
 
 	cmdErrReader, err := cmd.StderrPipe()
@@ -212,6 +140,29 @@ func Exec(env *Env, out *[]string, cmdName string, cmdArgs ...string) error {
 	return nil
 }
 
+//creates a multi-line string which is bash compatible
+func (env *Env) CreateBashCommand(cmdName string, cmdArgs ...string) string {
+	sb := &strings.Builder{}
+	sb.WriteString("#!/bin/bash")
+	sb.WriteString("cd ")
+	sb.WriteString(env.Dir)
+	sb.WriteString("\n")
+
+	for key, value := range env.Variables {
+		sb.WriteString(key)
+		sb.WriteString("=")
+		sb.WriteString(value)
+		sb.WriteString("\n")
+	}
+
+	sb.WriteString(cmdName)
+	for _, arg := range cmdArgs {
+		sb.WriteString(" ")
+		sb.WriteString(arg)
+	}
+	return sb.String()
+}
+
 type WriterDispatcher struct {
 	Writer []io.Writer
 }
@@ -228,12 +179,11 @@ func (w *WriterDispatcher) Write(p []byte) (n int, err error) {
 
 type WriterDispatcherLogFileView struct {
 	Delegate    io.Writer
-	LogFileView *api.LogFileView
 	LineNumbers int
 }
 
 func (w *WriterDispatcherLogFileView) Write(p []byte) (n int, err error) {
-	w.LogFileView.AddLine(&api.NumberedLine{Line: w.LineNumbers, Text: string(p)})
+	//w.LogFileView.AddLine(&api.NumberedLine{Line: w.LineNumbers, Text: string(p)})
 	w.LineNumbers++
 	return w.Delegate.Write(p)
 }
