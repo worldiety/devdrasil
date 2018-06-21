@@ -2,13 +2,12 @@ package tools
 
 import (
 	"bufio"
-	"io"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
-	"fmt"
+	"github.com/worldiety/devdrasil/log"
+	"bytes"
 )
 
 type LogLevel int
@@ -16,25 +15,30 @@ type LogLevel int
 const INFO LogLevel = 0
 const ERROR LogLevel = 1
 
+//this field contains the executed command as a bash script for debugging purposes in case of errors
+const FieldBashCMD = "bashcmd"
+
 type Env struct {
-	consoleLoggerInfo  *log.Logger
-	consoleLoggerError *log.Logger
+	Logger *log.Logger
 	//Dir is the working directory
 	Dir string
 
 	Variables map[string]string
 }
 
+//creates a default environment
 func NewEnv() *Env {
 	env := &Env{}
-	env.consoleLoggerInfo = log.New(os.Stdout, "INFO ", log.Ldate|log.Ltime|log.Lmicroseconds)
-	env.consoleLoggerError = log.New(os.Stdout, "ERROR ", log.Ldate|log.Ltime|log.Lmicroseconds)
+	env.Logger = log.Default
 	env.Variables = make(map[string]string)
 	return env
 }
 
-//executes and blocks until the program exists. This will by-pass any configured logger. All stdout and errout is captured into the returned buffer
-func (env *Env) ExecCapture(cmdName string, cmdArgs ...string) ([]byte, error) {
+//executes and blocks until the program exists. This will by-pass any configured logger.
+// All stdout and errout is captured into the returned buffer
+// This is useful if you don't need any progress/want to be as fast as possible/just process piped binary data
+func (env *Env) ExecBytes(cmdName string, cmdArgs ...string) ([]byte, error) {
+	env.Logger.Info(log.New(env.dumpCmd(cmdName, cmdArgs...)))
 
 	cmd := exec.Command(cmdName, cmdArgs...)
 	cmd.Dir = env.Dir
@@ -50,33 +54,32 @@ func (env *Env) ExecCapture(cmdName string, cmdArgs ...string) ([]byte, error) {
 	buf, err := cmd.CombinedOutput()
 
 	if err != nil {
-		env.Logf(ERROR, "Error failed to execute cmd: %s", err)
+		env.Logger.Error(log.New("cmd failed").SetError(err).Put(FieldBashCMD, env.CreateBashCommand(cmdName, cmdArgs...)))
 		return buf, err
 	}
 
 	return buf, nil
 }
 
-//just like ExecPipe but interprets everything as a line
+//just like Exec and logs everything properly but returns an array of lines of the emitted stdout and errout
 func (env *Env) ExecLines(cmdName string, cmdArgs ...string) ([]string, error) {
-	buf, err := env.ExecCapture(cmdName, cmdArgs...)
-	lines := strings.Split(string(buf), "\n")
+	buf := &bytes.Buffer{}
+	err := env.Exec(func(std string) {
+		buf.WriteString(std)
+	}, func(e string) {
+		buf.WriteString(e)
+	}, cmdName, cmdArgs...)
+	lines := strings.Split(string(buf.Bytes()), "\n")
 	return lines, err
 }
 
 //the default execution
 func (env *Env) Exec(onNewStdOut func(string), onNewErrOut func(string), cmdName string, cmdArgs ...string) error {
+	env.Logger.Info(log.New(env.dumpCmd(cmdName, cmdArgs...)))
+
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	for key, value := range env.Variables {
-		env.Logf(INFO, "SET %s=%s", key, value)
-	}
 
-	tmp := cmdName
-	for _, arg := range cmdArgs {
-		tmp += " " + arg
-	}
-	env.Logf(INFO, tmp)
 	cmd := exec.Command(cmdName, cmdArgs...)
 	cmd.Dir = env.Dir
 	cmd.Env = make([]string, 0)
@@ -90,14 +93,13 @@ func (env *Env) Exec(onNewStdOut func(string), onNewErrOut func(string), cmdName
 
 	cmdStdReader, err := cmd.StdoutPipe()
 	if err != nil {
-		env.Logf(ERROR, "Error creating StdoutPipe for %s [%s]: %s", cmdName, cmdArgs, err)
-		return fmt.Errorf()
-		err
+		env.Logger.Error(log.New("stdoutpipe failed").SetError(err).Put(FieldBashCMD, env.CreateBashCommand(cmdName, cmdArgs...)))
+		return err
 	}
 
 	cmdErrReader, err := cmd.StderrPipe()
 	if err != nil {
-		env.Logf(ERROR, "Error creating StderrPipe for %s [%s]: %s", cmdName, cmdArgs, err)
+		env.Logger.Error(log.New("stderrpipe failed").SetError(err).Put(FieldBashCMD, env.CreateBashCommand(cmdName, cmdArgs...)))
 		return err
 	}
 
@@ -105,10 +107,8 @@ func (env *Env) Exec(onNewStdOut func(string), onNewErrOut func(string), cmdName
 	go func() {
 		for scannerStd.Scan() {
 			txt := scannerStd.Text()
-			if out != nil {
-				*out = append(*out, txt)
-			}
-			env.Log(INFO, txt)
+			env.Logger.Info(log.New(txt))
+			onNewStdOut(txt)
 		}
 		wg.Done()
 	}()
@@ -117,22 +117,20 @@ func (env *Env) Exec(onNewStdOut func(string), onNewErrOut func(string), cmdName
 	go func() {
 		for scannerErr.Scan() {
 			txt := scannerErr.Text()
-			if out != nil {
-				*out = append(*out, txt)
-			}
-			env.Log(ERROR, txt)
+			env.Logger.Error(log.New(txt))
+			onNewErrOut(txt)
 		}
 	}()
 
 	err = cmd.Start()
 	if err != nil {
-		env.Logf(ERROR, "Error starting Cmd: %s", err)
+		env.Logger.Error(log.New("cmd failed").SetError(err).Put(FieldBashCMD, env.CreateBashCommand(cmdName, cmdArgs...)))
 		return err
 	}
 
 	err = cmd.Wait()
 	if err != nil {
-		env.Logf(ERROR, "Error waiting for Cmd: %s", err)
+		env.Logger.Error(log.New("cmd failed").SetError(err).Put(FieldBashCMD, env.CreateBashCommand(cmdName, cmdArgs...)))
 		return err
 	}
 
@@ -140,10 +138,21 @@ func (env *Env) Exec(onNewStdOut func(string), onNewErrOut func(string), cmdName
 	return nil
 }
 
+func (env *Env) dumpCmd(cmdName string, cmdArgs ...string) string {
+	sb := &strings.Builder{}
+	sb.WriteString(cmdName)
+	for _, arg := range cmdArgs {
+		sb.WriteString(" ")
+		sb.WriteString(arg)
+	}
+	return sb.String()
+}
+
 //creates a multi-line string which is bash compatible
 func (env *Env) CreateBashCommand(cmdName string, cmdArgs ...string) string {
 	sb := &strings.Builder{}
 	sb.WriteString("#!/bin/bash")
+	sb.WriteString("# this is not the script which has been executed, but an approximation")
 	sb.WriteString("cd ")
 	sb.WriteString(env.Dir)
 	sb.WriteString("\n")
@@ -161,33 +170,4 @@ func (env *Env) CreateBashCommand(cmdName string, cmdArgs ...string) string {
 		sb.WriteString(arg)
 	}
 	return sb.String()
-}
-
-type WriterDispatcher struct {
-	Writer []io.Writer
-}
-
-func (w *WriterDispatcher) Write(p []byte) (n int, err error) {
-	for _, writer := range w.Writer {
-		n, err = writer.Write(p)
-		if err != nil {
-			return
-		}
-	}
-	return 0, nil
-}
-
-type WriterDispatcherLogFileView struct {
-	Delegate    io.Writer
-	LineNumbers int
-}
-
-func (w *WriterDispatcherLogFileView) Write(p []byte) (n int, err error) {
-	//w.LogFileView.AddLine(&api.NumberedLine{Line: w.LineNumbers, Text: string(p)})
-	w.LineNumbers++
-	return w.Delegate.Write(p)
-}
-
-type Lines struct {
-	Strings []string
 }

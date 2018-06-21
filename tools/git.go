@@ -1,9 +1,7 @@
 package tools
 
 import (
-	"bytes"
 	"fmt"
-	"github.com/worldiety/devdrasil/tools/exec"
 	"strconv"
 	"strings"
 	"sync"
@@ -12,11 +10,11 @@ import (
 type FormatField string
 
 type Git struct {
-	Env   *tools.Env
+	Env   *Env
 	mutex sync.Mutex
 }
 
-func NewGit(env *tools.Env) *Git {
+func NewGit(env *Env) *Git {
 	return &Git{Env: env}
 }
 
@@ -24,35 +22,37 @@ func (g *Git) Clone(url string) error {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
-	return tools.Exec(g.Env, nil, "git", "clone", url, ".")
+	_, err := g.Env.ExecLines("git", "clone", url, ".")
+	return err
 }
 
 func (g *Git) Fetch() error {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
-	return tools.Exec(g.Env, nil, "git", "fetch")
+	_, err := g.Env.ExecLines("git", "fetch")
+	return err
 }
 
 func (g *Git) Pull() error {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
-	return tools.Exec(g.Env, nil, "git", "pull", "--all")
+	_, err := g.Env.ExecLines("git", "pull", "--all")
+	return err
 }
 
 func (g *Git) ListBranches() (branches []string, e error) {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
-	out := make([]string, 0)
-	e = tools.Exec(g.Env, &out, "git", "branch", "-a")
-	for i, l := range out {
+	lines, err := g.Env.ExecLines("git", "branch", "-a")
+	for i, l := range lines {
 		clean := strings.Replace(l, "*", "", -1)
 		clean = strings.TrimSpace(clean)
-		out[i] = clean
+		lines[i] = clean
 	}
-	return out, e
+	return lines, err
 }
 
 func (g *Git) Clean(files bool, directories bool) error {
@@ -70,14 +70,16 @@ func (g *Git) Clean(files bool, directories bool) error {
 		cmd = ""
 	}
 
-	return tools.Exec(g.Env, nil, "git", "clean", cmd)
+	_, err := g.Env.ExecLines("git", "clean", cmd)
+	return err
 }
 
 func (g *Git) Checkout(branch string) error {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
-	return tools.Exec(g.Env, nil, "git", "checkout", branch)
+	_, err := g.Env.ExecLines("git", "checkout", branch)
+	return err
 }
 
 //returns the current head commit hash
@@ -85,13 +87,12 @@ func (g *Git) GetHead() (head string, e error) {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
-	out := make([]string, 0)
-	e = tools.Exec(g.Env, &out, "git", "rev-parse", "HEAD")
+	lines, err := g.Env.ExecLines("git", "rev-parse", "HEAD")
 	head = ""
-	if len(out) > 0 {
-		head = strings.TrimSpace(out[0])
+	if len(lines) > 0 {
+		head = strings.TrimSpace(lines[0])
 	}
-	return head, e
+	return head, err
 
 }
 
@@ -99,7 +100,8 @@ func (g *Git) ResetHard() error {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
-	return tools.Exec(g.Env, nil, "git", "reset", "--hard")
+	_, err := g.Env.ExecLines("git", "reset", "--hard")
+	return err
 }
 
 func (g *Git) Show(hash string) (value *GitObject, e error) {
@@ -107,23 +109,22 @@ func (g *Git) Show(hash string) (value *GitObject, e error) {
 	defer g.mutex.Unlock()
 
 	format := "%H%n%h%n%ae%n%ce%n%at%n%cD%n%s%n%B"
-	out := make([]string, 0)
-	e = tools.Exec(g.Env, &out, "git", "--no-pager", "show", "--quiet", "--pretty=format:"+format, hash)
+	lines, err := g.Env.ExecLines("git", "--no-pager", "show", "--quiet", "--pretty=format:"+format, hash)
 
-	if e != nil {
-		return nil, e
+	if err != nil {
+		return nil, err
 	} else {
 
-		time, e := strconv.ParseInt(out[4], 10, 64)
+		time, e := strconv.ParseInt(lines[4], 10, 64)
 		if e != nil {
 			return nil, e
 		}
 		msg := make([]string, 0)
-		for i := 6; i < len(out); i++ {
-			msg = append(msg, out[i])
+		for i := 6; i < len(lines); i++ {
+			msg = append(msg, lines[i])
 		}
 
-		return &GitObject{Hash: hash, CommitHash: out[0], AuthorEmail: out[1], CommitterEmail: out[2], UnixTimestamp: time, CommitterDate: out[4], Subject: out[5], Body: msg}, nil
+		return &GitObject{Hash: hash, CommitHash: lines[0], AuthorEmail: lines[1], CommitterEmail: lines[2], UnixTimestamp: time, CommitterDate: lines[4], Subject: lines[5], Body: msg}, nil
 	}
 }
 
@@ -132,11 +133,10 @@ func (g *Git) Log(hash string) (values []*GitObject, e error) {
 	defer g.mutex.Unlock()
 
 	format := "%H%n%h%n%ae%n%ce%n%at%n%cD%n%s"
-	out := make([]string, 0)
-	e = tools.Exec(g.Env, &out, "git", "--no-pager", "log", "--quiet", "--pretty=format:"+format, hash)
+	out, err := g.Env.ExecLines("git", "--no-pager", "log", "--quiet", "--pretty=format:"+format, hash)
 
-	if e != nil {
-		return nil, e
+	if err != nil {
+		return nil, err
 	} else {
 		res := make([]*GitObject, 0)
 		for i := 0; i < len(out); i += 7 {
@@ -157,14 +157,13 @@ func (g *Git) GetBranches(hash string) (branches []string, e error) {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
-	out := make([]string, 0)
-	e = tools.Exec(g.Env, &out, "git", "branch", "--contains", hash)
-	for i, l := range out {
+	lines, err := g.Env.ExecLines("git", "branch", "--contains", hash)
+	for i, l := range lines {
 		clean := strings.Replace(l, "*", "", -1)
 		clean = strings.TrimSpace(clean)
-		out[i] = clean
+		lines[i] = clean
 	}
-	return out, e
+	return lines, err
 }
 
 //list all files of a tree-ish
@@ -172,10 +171,8 @@ func (g *Git) ListFiles(id string) (files []*GitFile, e error) {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
-	out := make([]string, 0)
-
 	// git --no-pager ls-tree --long -r master
-	e = tools.Exec(g.Env, &out, "git", "--no-pager", "ls-tree", "--long", "-r", id)
+	out, err := g.Env.ExecLines("git", "--no-pager", "ls-tree", "--long", "-r", id)
 
 	//e.g. <mode> SP <type> SP <object> SP <object size> TAB <file>
 	res := make([]*GitFile, 0)
@@ -216,7 +213,7 @@ func (g *Git) ListFiles(id string) (files []*GitFile, e error) {
 		res = append(res, &GitFile{Mode: int(mode), Type: tokens[1], Object: tokens[2], Size: size, Name: strings.TrimSpace(tokens[4])})
 
 	}
-	return res, nil
+	return res, err
 }
 
 func scanUntil(str string, offsetRune int, stopChars []rune) (string, int) {
@@ -251,15 +248,13 @@ func (g *Git) GetFile(id string, name string) ([]byte, error) {
 	g.mutex.Lock()
 	defer g.mutex.Unlock()
 
-	buf := &bytes.Buffer{}
-
 	//git --no-pager show master:app/app/src/main/res/drawable-xxhdpi/icon.png
-	e := tools.ExecDump(g.Env, buf, "git", "--no-pager", "show", id+":"+name)
-	if e != nil {
-		return nil, e
+	buf, err := g.Env.ExecBytes("git", "--no-pager", "show", id+":"+name)
+	if err != nil {
+		return nil, err
 	}
 
-	return buf.Bytes(), nil
+	return buf, nil
 }
 
 //e.g. 100644 blob e7b4def49cb53d9aa04228dd3edb14c9e635e003      15	dir/settings.gradle

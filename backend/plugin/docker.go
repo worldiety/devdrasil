@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"os"
 	"io/ioutil"
-	"log"
+	"github.com/worldiety/devdrasil/tools"
+	"github.com/worldiety/devdrasil/log"
+	"sync"
 )
 
 //by default only the owner is able to read, write and exec
@@ -22,6 +24,17 @@ type PluginManager struct {
 
 	 */
 	rootDir string
+	mutex   sync.Mutex
+}
+
+func NewPluginManager(dir string) *PluginManager {
+	return &PluginManager{rootDir: dir}
+}
+
+func (r *PluginManager) getGit(dir string) *tools.Git {
+	git := tools.NewGit(tools.NewEnv())
+	git.Env.Dir = dir
+	return git
 }
 
 /*
@@ -31,6 +44,9 @@ need to solve that for the devdrasil-user by hand on the devdrasil machine. We c
 but we would require to support all edge cases then - unclear if it is worth the effort.
  */
 func (r *PluginManager) Install(pluginId string, gitUrl string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
 	err := validatePluginId(pluginId)
 	if err != nil {
 		return err
@@ -44,7 +60,7 @@ func (r *PluginManager) Install(pluginId string, gitUrl string) error {
 		}
 	} else {
 		if len(files) > 0 {
-			log.Printf("expected an empty or non-existing directory: %s\n", pluginDir)
+			log.Default.Warn(log.New("expected an empty or non-existing directory").Put("dir", pluginDir))
 			return fmt.Errorf("cannot install plugin '%s', directory is not empty", pluginId)
 		}
 	}
@@ -55,31 +71,92 @@ func (r *PluginManager) Install(pluginId string, gitUrl string) error {
 		return err
 	}
 	if !stat.IsDir() {
-		log.Printf("expected a directory: %s\n", pluginDir)
+		log.Default.Warn(log.New("expected a directory").Put("dir", pluginDir))
 		return fmt.Errorf("cannot create plugin directory")
 	}
 
 	os.MkdirAll(pluginDir, defaultFilePermission)
 
+	git := r.getGit(pluginDir)
+	err = git.Clone(gitUrl)
+	if err != nil {
+		return err
+	}
+	err = git.Checkout("master")
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
+//checks if a plugin folder with data is available. Does not check if the plugin is functional. Returns the git hash
+func (r *PluginManager) GetVersion(pluginId string) (string, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	err := validatePluginId(pluginId)
+	if err != nil {
+		return "", err
+	}
+	pluginDir := filepath.Join(r.rootDir, pluginId)
+
+	files, err := ioutil.ReadDir(pluginDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", os.ErrNotExist
+		} else {
+			return "", err
+		}
+	} else {
+		if len(files) > 0 {
+			git := r.getGit(pluginDir)
+			return git.GetHead()
+		} else {
+			return "", os.ErrNotExist
+		}
+	}
+}
+
+//removes everything, including data, git, docker images, etc.
 func (r *PluginManager) Remove(pluginId string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
 	err := validatePluginId(pluginId)
 	if err != nil {
 		return err
 	}
-	return nil
+
+	pluginDir := filepath.Join(r.rootDir, pluginId)
+	return os.RemoveAll(pluginDir)
 }
 
 func (r *PluginManager) Update(pluginId string) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
 	err := validatePluginId(pluginId)
 	if err != nil {
 		return err
 	}
+
+	pluginDir := filepath.Join(r.rootDir, pluginId)
+	git := r.getGit(pluginDir)
+	err = git.Pull()
+	if err != nil {
+		return err
+	}
+
+	err = git.Checkout("master")
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
+//this is a security essential: avoid various filename attacks, like ../../etc/ because the id is used directly in the filesystem
 func validatePluginId(id string) error {
 	re := regexp.MustCompile("^[a-z0-9_.]+$")
 	if !re.MatchString(id) {
@@ -87,4 +164,3 @@ func validatePluginId(id string) error {
 	}
 	return nil
 }
-

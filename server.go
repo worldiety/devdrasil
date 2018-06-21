@@ -15,6 +15,7 @@ import (
 	"github.com/worldiety/devdrasil/backend/user"
 	"github.com/worldiety/devdrasil/backend/group"
 	"github.com/worldiety/devdrasil/backend/company"
+	"github.com/worldiety/devdrasil/backend/plugin"
 )
 
 type Devdrasil struct {
@@ -100,11 +101,13 @@ func NewDevdrasil() *Devdrasil {
 
 	companies := company.NewCompanies(devdrasil.db)
 
+	pluginManager := plugin.NewPluginManager(devdrasil.plugins)
+
 	devdrasil.restUsers = backend.NewEndpointUsers(devdrasil.mux, sessions, users, permissions)
 	devdrasil.restSessions = backend.NewEndpointSessions(devdrasil.mux, sessions, users)
 	devdrasil.restGroups = backend.NewEndpointGroups(devdrasil.mux, sessions, users, permissions, groups)
 	devdrasil.restCompanies = backend.NewEndpointCompanies(devdrasil.mux, sessions, users, permissions, companies)
-	devdrasil.restMarket = backend.NewEndpointStore(devdrasil.mux, sessions, users, permissions)
+	devdrasil.restMarket = backend.NewEndpointStore(devdrasil.mux, sessions, users, permissions, pluginManager)
 
 	return devdrasil
 }

@@ -15,6 +15,7 @@ import {
     LayoutGrid,
     ListView,
     LRLayout,
+    NotFoundException,
     P,
     PullRightBox,
     RaisedButton,
@@ -99,16 +100,12 @@ class ViewDetails extends Box {
 
         starBox.getElement().style.cssFloat = "right";
 
-        let btnInstall = new RaisedButton();
-        btnInstall.setText(this.ctx.getString("install"));
-        btnInstall.getElement().style.cssFloat = "right";
-
 
         this.add(header);
 
 
         this.add(new PullRightBox(starBox));
-        this.add(new PullRightBox(btnInstall));
+        this.add(new InstallRemoveIdleArea(this.ctx, this.plugin));
 
         this.add(new HR());
 
@@ -122,6 +119,67 @@ class ViewDetails extends Box {
 
     }
 
+
+}
+
+class InstallRemoveIdleArea extends PullRightBox {
+    /**
+     *
+     * @param {DefaultUserInterfaceState} ctx
+     * @param {Plugin} plugin
+     */
+    constructor(ctx, plugin) {
+        super();
+        this.ctx = ctx;
+        this.plugin = plugin;
+        this.setStatusUnknown();
+
+        this.ctx.getApplication().getMarketRepository().getInstallInfo(plugin.getId()).then(info => {
+            this.setStatusUninstallable();
+        }).catch(err => {
+            if (err instanceof NotFoundException) {
+                this.setStatusInstallable();
+            } else {
+                this.ctx.handleDefaultError(err);
+            }
+        });
+    }
+
+    setStatusUnknown() {
+        this.removeAll();
+        this.add(new CircularProgressIndicator())
+    }
+
+    setStatusInstallable() {
+        let btnInstall = new RaisedButton();
+        btnInstall.setText(this.ctx.getString("install"));
+        btnInstall.setOnClick(evt => {
+            btnInstall.setText(this.ctx.getString("is_installing"));
+            btnInstall.setEnabled(false);
+            this.ctx.getApplication().getMarketRepository().install(this.plugin.getId()).then(_ => {
+                this.setStatusUninstallable();
+            }).catch(err => this.ctx.handleDefaultError(err));
+        });
+
+        this.removeAll();
+        this.add(btnInstall);
+    }
+
+    setStatusUninstallable() {
+        let btnUninstall = new RaisedButton();
+        btnUninstall.setText(this.ctx.getString("uninstall"));
+
+        btnUninstall.setOnClick(_ => {
+            btnUninstall.setText(this.ctx.getString("is_uninstalling"));
+            btnUninstall.setEnabled(false);
+            this.ctx.getApplication().getMarketRepository().remove(this.plugin.getId()).then(_ => {
+                this.setStatusInstallable();
+            }).catch(err => this.ctx.handleDefaultError(err));
+        });
+
+        this.removeAll();
+        this.add(btnUninstall);
+    }
 }
 
 

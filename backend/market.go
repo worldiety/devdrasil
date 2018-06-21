@@ -5,21 +5,46 @@ import (
 	"github.com/worldiety/devdrasil/backend/session"
 	"github.com/worldiety/devdrasil/backend/user"
 	"github.com/worldiety/devdrasil/backend/store"
+	"github.com/worldiety/devdrasil/backend/plugin"
+	"strings"
+	"os"
+	"time"
 )
 
-type EndpointMarket struct {
-	mux         *http.ServeMux
-	sessions    *session.Sessions
-	users       *user.Users
-	permissions *user.Permissions
-	store       *store.Store
+type PluginInfo struct {
+	Id      string
+	Version string
 }
 
-func NewEndpointStore(mux *http.ServeMux, sessions *session.Sessions, users *user.Users, permissions *user.Permissions) *EndpointMarket {
-	endpoint := &EndpointMarket{mux: mux, users: users, sessions: sessions, permissions: permissions, store: &store.Store{}}
+type EndpointMarket struct {
+	mux           *http.ServeMux
+	sessions      *session.Sessions
+	users         *user.Users
+	permissions   *user.Permissions
+	store         *store.Store
+	pluginManager *plugin.PluginManager
+}
+
+func NewEndpointStore(mux *http.ServeMux, sessions *session.Sessions, users *user.Users, permissions *user.Permissions, pluginManager *plugin.PluginManager) *EndpointMarket {
+	endpoint := &EndpointMarket{mux: mux, users: users, sessions: sessions, permissions: permissions, store: &store.Store{}, pluginManager: pluginManager}
 	mux.HandleFunc("/market/index", endpoint.getIndex)
-	mux.HandleFunc("/market/install/", endpoint.installPlugin)
+	mux.HandleFunc("/plugins/", endpoint.pluginsVerbs)
 	return endpoint
+}
+
+func (e *EndpointMarket) pluginsVerbs(writer http.ResponseWriter, request *http.Request) {
+	pluginId := strings.TrimPrefix(request.URL.Path, "/plugins/")
+	switch request.Method {
+	case "GET":
+		e.getPluginInfo(writer, request, pluginId)
+	case "POST":
+		e.installPlugin(writer, request, pluginId)
+	case "DELETE":
+		e.deletePlugin(writer, request, pluginId)
+	default:
+		http.Error(writer, request.Method, http.StatusMethodNotAllowed);
+		return
+	}
 }
 
 // Requires permissions LIST_MARKET
@@ -43,11 +68,104 @@ func (e *EndpointMarket) getIndex(writer http.ResponseWriter, request *http.Requ
 }
 
 // Requires permissions INSTALL_PLUGIN
-//  @Path POST /market/install/{id}
+//  @Path POST /plugins/{id}
 //  @Header sid string
-//	@Return 200 github.com/worldiety/devdrasil/backend/?
+//	@Return 200 github.com/worldiety/devdrasil/backend/PluginInfo
 //  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent)
 //  @Return 500 (for any other error)
-func (e *EndpointMarket) installPlugin(writer http.ResponseWriter, request *http.Request) {
+func (e *EndpointMarket) installPlugin(writer http.ResponseWriter, request *http.Request, pluginId string) {
+	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.INSTALL_PLUGIN)
+	if usr == nil {
+		return
+	}
 
+	//some sleep for nice visualization
+	time.Sleep(2 * time.Second)
+
+	index, err := e.store.GetIndex()
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	plg := index.GetPlugin(pluginId)
+	if plg == nil {
+		http.Error(writer, pluginId, http.StatusNotFound)
+		return
+	}
+	if plg.Source.Type != "git" {
+		http.Error(writer, "sources of type "+plg.Source.Type+" are not supported", http.StatusInternalServerError)
+		return
+	}
+	err = e.pluginManager.Install(pluginId, plg.Source.Url)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	version, err := e.pluginManager.GetVersion(pluginId)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	WriteJSONBody(writer, &PluginInfo{pluginId, version})
+}
+
+// Requires only an authenticated user. By design every user can query installed plugins, so that later UI components can fit themself properly
+//  @Path GET /plugins/{id}
+//  @Header sid string
+//	@Return 200 github.com/worldiety/devdrasil/backend/PluginInfo
+//  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent)
+//  @Return 500 (for any other error)
+func (e *EndpointMarket) getPluginInfo(writer http.ResponseWriter, request *http.Request, pluginId string) {
+	_, usr := GetSessionAndUser(e.sessions, e.users, writer, request)
+	if usr == nil {
+		return
+	}
+
+
+	version, err := e.pluginManager.GetVersion(pluginId)
+	if err != nil {
+		if os.IsNotExist(err) {
+			http.Error(writer, err.Error(), http.StatusNotFound)
+			return
+		} else {
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+	}
+	WriteJSONBody(writer, &PluginInfo{pluginId, version})
+}
+
+// Requires permissions REMOVE_PLUGIN
+//  @Path DELETE /plugins/{id}
+//  @Header sid string
+//	@Return 200
+//  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent)
+//  @Return 500 (for any other error)
+func (e *EndpointMarket) deletePlugin(writer http.ResponseWriter, request *http.Request, pluginId string) {
+	_, usr := GetSessionAndUser(e.sessions, e.users, writer, request)
+	if usr == nil {
+		return
+	}
+
+	//some sleep for nice visualization
+	time.Sleep(2 * time.Second)
+
+	_, err := e.pluginManager.GetVersion(pluginId)
+	if err != nil {
+		if os.IsNotExist(err) {
+			http.Error(writer, err.Error(), http.StatusNotFound)
+			return
+		} else {
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+
+	err = e.pluginManager.Remove(pluginId)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

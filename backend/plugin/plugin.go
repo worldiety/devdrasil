@@ -4,7 +4,6 @@ import (
 	"path/filepath"
 	"io/ioutil"
 	"log"
-	"github.com/worldiety/devdrasil/tools/exec"
 )
 
 const dockerImageVersionFilename = "docker-image.version"
@@ -34,8 +33,7 @@ func (p *Plugin) GetDockerImageVersion() string {
 
 //checks if an update is available
 func (p *Plugin) IsUpdateAvailable() (bool, error) {
-	env := tools.NewEnv()
-
+	return false, nil
 }
 
 func (p *Plugin) Update() {

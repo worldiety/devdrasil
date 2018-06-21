@@ -244,6 +244,19 @@ class Comment {
     }
 }
 
+
+class PluginInstallInfo {
+    /**
+     *
+     * @param {string} id
+     * @param {string} version
+     */
+    constructor(id, version) {
+        this.id = id;
+        this.version = version;
+    }
+}
+
 /**
  * A group repository represents the REST endpoint for groups.
  */
@@ -273,6 +286,44 @@ class MarketRepository {
     }
 
 
+    /**
+     * Tries to install the given plugin id
+     * @param {string} pluginId
+     * @return {Promise<void>}
+     */
+    async install(pluginId) {
+        let session = await this.sessionProvider.getSession();
+        return restInstall(this.fetcher, session.sid, pluginId).then(raw => {
+            return throwFromHTTP(raw);
+        });
+    }
+
+    /**
+     * Tries to remove the given plugin id
+     * @param {string} pluginId
+     * @return {Promise<void>}
+     */
+    async remove(pluginId) {
+        let session = await this.sessionProvider.getSession();
+        return restDelete(this.fetcher, session.sid, pluginId).then(raw => {
+            return throwFromHTTP(raw);
+        });
+    }
+
+    /**
+     * Tries to get the current install info for the plugin
+     * @param pluginId
+     * @return {PromiseLike<PluginInstallInfo>}
+     */
+    async getInstallInfo(pluginId) {
+        let session = await this.sessionProvider.getSession();
+        return restInstallInfo(this.fetcher, session.sid, pluginId).then(raw => {
+            return throwFromHTTP(raw).then(raw => raw.json());
+        }).then(json => {
+            return new PluginInstallInfo(json["Id"], json["Version"])
+        });
+    }
+
     fromJson(json) {
         return new MarketIndex(json);
     }
@@ -287,4 +338,37 @@ function restIndex(fetcher, sid) {
         cache: 'no-store'
     };
     return fetcher.fetchRaw("/market/index", cfg)
+}
+
+function restInstall(fetcher, sid, pid) {
+    let cfg = {
+        method: 'POST',
+        headers: {
+            'sid': sid,
+        },
+        cache: 'no-store'
+    };
+    return fetcher.fetchRaw("/plugins/" + pid, cfg)
+}
+
+function restDelete(fetcher, sid, pid) {
+    let cfg = {
+        method: 'DELETE',
+        headers: {
+            'sid': sid,
+        },
+        cache: 'no-store'
+    };
+    return fetcher.fetchRaw("/plugins/" + pid, cfg)
+}
+
+function restInstallInfo(fetcher, sid, pid) {
+    let cfg = {
+        method: 'GET',
+        headers: {
+            'sid': sid,
+        },
+        cache: 'no-store'
+    };
+    return fetcher.fetchRaw("/plugins/" + pid, cfg)
 }

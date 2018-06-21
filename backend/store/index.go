@@ -96,3 +96,12 @@ func (r *Store) GetIndex() (*Index, error) {
 
 	return idx, nil
 }
+
+func (i *Index) GetPlugin(id string) *Plugin {
+	for _, p := range i.Plugins {
+		if p.Id == id {
+			return p
+		}
+	}
+	return nil
+}

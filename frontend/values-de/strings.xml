@@ -52,5 +52,8 @@
     <string name="search">Suchen</string>
     <string name="ratings">Bewertungen</string>
     <string name="install">Installieren</string>
+    <string name="uninstall">Deinstallieren</string>
+    <string name="is_installing">wird installiert</string>
+    <string name="is_uninstalling">wird deinstalliert</string>
     <string name="locale">de-DE</string>
 </resources>

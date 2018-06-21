@@ -102,6 +102,10 @@ class ExampleApp extends Application {
         return this.companyRepository;
     }
 
+    /**
+     *
+     * @return {MarketRepository}
+     */
     getMarketRepository() {
         if (this.marketRespository == null) {
             this.marketRespository = new MarketRepository(this.getFetcher(), this.getSessionRepository());
