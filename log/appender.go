@@ -37,7 +37,28 @@ func (f *TextWriter) Append(fields Fields) error {
 		f.Writer.Write([]byte(time.Unix(val, 0).Format("2006-01-02T15:04:05-0700") + " "))
 	}
 	if val, ok := fields[FieldLevel].(Level); ok {
-		f.Writer.Write([]byte(strconv.Itoa(int(val)) + " "))
+		str := ""
+		switch val {
+		case Emergency:
+			str = "Y"
+		case Alert:
+			str = "A"
+		case Critical:
+			str = "C"
+		case Error:
+			str = "E"
+		case Warning:
+			str = "W"
+		case Notice:
+			str = "N"
+		case Informational:
+			str = "I"
+		case Debug:
+			str = "D"
+		default:
+			strconv.Itoa(int(val))
+		}
+		f.Writer.Write([]byte(str + " "))
 	}
 
 	for key, value := range fields {

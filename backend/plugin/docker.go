@@ -14,6 +14,11 @@ import (
 //by default only the owner is able to read, write and exec
 const defaultFilePermission = 0700
 
+const dockerLabelPlugin = "devdrasil-plugin"
+const pluginApp = "app"
+const pluginData = "data"
+const pluginBranch = "master"
+
 type PluginManager struct {
 	/*
 		The dir where all plugins are stored, e.g.
@@ -35,6 +40,12 @@ func (r *PluginManager) getGit(dir string) *tools.Git {
 	git := tools.NewGit(tools.NewEnv())
 	git.Env.Dir = dir
 	return git
+}
+
+func (r *PluginManager) getDocker(dir string) *tools.Docker {
+	docker := tools.NewDocker(tools.NewEnv())
+	docker.Env.Dir = dir
+	return docker
 }
 
 /*
@@ -77,15 +88,49 @@ func (r *PluginManager) Install(pluginId string, gitUrl string) error {
 
 	os.MkdirAll(pluginDir, defaultFilePermission)
 
-	git := r.getGit(pluginDir)
+	appDir := filepath.Join(pluginDir, pluginApp)
+	os.Mkdir(appDir, defaultFilePermission)
+
+	dataDir := filepath.Join(pluginDir, pluginData)
+	os.Mkdir(dataDir, defaultFilePermission)
+
+	log.Default.Info(log.New("cloning into").Put("dir", appDir))
+	git := r.getGit(appDir)
 	err = git.Clone(gitUrl)
 	if err != nil {
 		return err
 	}
-	err = git.Checkout("master")
+	err = git.Checkout(pluginBranch)
 	if err != nil {
 		return err
 	}
+
+	//all files are here, start dockering
+	revision, err := git.GetHead()
+	if err != nil {
+		return err
+	}
+	docker := r.getDocker(appDir)
+	err = docker.Build(pluginId, revision, true)
+	if err != nil {
+		return err
+	}
+
+	options := &tools.StartOptions{}
+	options.Repository = pluginId
+	options.Tag = revision
+	options.Labels = map[string]string{dockerLabelPlugin: pluginId}
+	options.ContainerPort = 80
+	options.HostPort = 4000 //TODO
+	options.RemoveOnExit = true
+	options.Mounts = []*tools.Mount{{HostDir: dataDir, ContainerDir: "/" + pluginData, ReadOnly: false}}
+
+	cid, err := docker.Start(options)
+	if err != nil {
+		return err
+	}
+
+	log.Default.Info(log.New("container running").Put("containerId", cid))
 
 	return nil
 }
@@ -99,9 +144,9 @@ func (r *PluginManager) GetVersion(pluginId string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	pluginDir := filepath.Join(r.rootDir, pluginId)
+	pluginAppDir := filepath.Join(r.rootDir, pluginId, pluginApp)
 
-	files, err := ioutil.ReadDir(pluginDir)
+	files, err := ioutil.ReadDir(pluginAppDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return "", os.ErrNotExist
@@ -110,8 +155,13 @@ func (r *PluginManager) GetVersion(pluginId string) (string, error) {
 		}
 	} else {
 		if len(files) > 0 {
-			git := r.getGit(pluginDir)
-			return git.GetHead()
+			git := r.getGit(pluginAppDir)
+			head, err := git.GetHead()
+			if err != nil {
+				log.Default.Error(log.New("cannot get version").Put("dir", pluginAppDir).SetError(err))
+				return "n/a", nil
+			}
+			return head, nil
 		} else {
 			return "", os.ErrNotExist
 		}
@@ -128,8 +178,65 @@ func (r *PluginManager) Remove(pluginId string) error {
 		return err
 	}
 
+	//remove all plugin data, like the git repo and app data
 	pluginDir := filepath.Join(r.rootDir, pluginId)
-	return os.RemoveAll(pluginDir)
+	errDirRemove := os.RemoveAll(pluginDir)
+
+	docker := r.getDocker(".")
+
+	//shutdown any docker container instance with the appropriate label
+	containers, err := docker.ListContainers()
+	if err != nil {
+		return err
+	}
+	var errDockerContainer error
+	for _, con := range containers {
+		value, _ := con.GetLabelValue(dockerLabelPlugin)
+		if value == pluginId {
+			err := docker.Stop(con.ID)
+			if errDockerContainer != nil {
+				errDockerContainer = err
+			}
+			if err != nil {
+				log.Default.Error(log.New("failed to stop docker container").Put("id", con.ID))
+			}
+		}
+	}
+
+	//remove all docker images for the plugin (pluginId==repository)
+	images, err := docker.ListImages()
+	if err != nil {
+		return err
+	}
+	var errDockerRemove error
+	for _, img := range images {
+		if img.Repository == pluginId {
+			err := docker.RemoveImage(pluginId, img.Tag, true)
+			if errDockerRemove == nil {
+				errDockerRemove = err
+			}
+			if err != nil {
+				log.Default.Error(log.New("failed to remove docker image").Put("repository", img.Repository).Put("tag", img.Tag))
+			}
+
+		}
+	}
+
+	//just GC everything
+	docker.Prune()
+
+	if errDirRemove != nil {
+		return errDirRemove
+	}
+
+	if errDockerRemove != nil {
+		return errDockerRemove
+	}
+
+	if errDockerContainer != nil {
+		return errDockerContainer
+	}
+	return nil
 }
 
 func (r *PluginManager) Update(pluginId string) error {
@@ -141,14 +248,14 @@ func (r *PluginManager) Update(pluginId string) error {
 		return err
 	}
 
-	pluginDir := filepath.Join(r.rootDir, pluginId)
-	git := r.getGit(pluginDir)
+	pluginAppDir := filepath.Join(r.rootDir, pluginId, pluginApp)
+	git := r.getGit(pluginAppDir)
 	err = git.Pull()
 	if err != nil {
 		return err
 	}
 
-	err = git.Checkout("master")
+	err = git.Checkout(pluginBranch)
 	if err != nil {
 		return err
 	}

@@ -8,6 +8,7 @@ import (
 	"sync"
 	"github.com/worldiety/devdrasil/log"
 	"bytes"
+	"io"
 )
 
 type LogLevel int
@@ -70,13 +71,16 @@ func (env *Env) ExecLines(cmdName string, cmdArgs ...string) ([]string, error) {
 		buf.WriteString(e)
 	}, cmdName, cmdArgs...)
 	lines := strings.Split(string(buf.Bytes()), "\n")
+	//purge empty line from split
+	if lines[len(lines)-1] == "" {
+		lines = lines[:len(lines)-1]
+	}
 	return lines, err
 }
 
 //the default execution
 func (env *Env) Exec(onNewStdOut func(string), onNewErrOut func(string), cmdName string, cmdArgs ...string) error {
 	env.Logger.Info(log.New(env.dumpCmd(cmdName, cmdArgs...)))
-
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
@@ -103,22 +107,31 @@ func (env *Env) Exec(onNewStdOut func(string), onNewErrOut func(string), cmdName
 		return err
 	}
 
-	scannerStd := bufio.NewScanner(cmdStdReader)
+	scannerStd := bufio.NewReader(cmdStdReader)
 	go func() {
-		for scannerStd.Scan() {
-			txt := scannerStd.Text()
+		for {
+			txt, err := scannerStd.ReadString('\n')
+			if err != nil {
+				break
+			}
 			env.Logger.Info(log.New(txt))
 			onNewStdOut(txt)
+
 		}
+
 		wg.Done()
 	}()
 
-	scannerErr := bufio.NewScanner(cmdErrReader)
+	scannerErr := bufio.NewReader(cmdErrReader)
 	go func() {
-		for scannerErr.Scan() {
-			txt := scannerErr.Text()
-			env.Logger.Error(log.New(txt))
-			onNewErrOut(txt)
+		for {
+			txt, err := scannerErr.ReadString('\n')
+			if err != nil {
+				break
+			}
+			env.Logger.Info(log.New(txt))
+			onNewStdOut(txt)
+
 		}
 	}()
 
@@ -151,8 +164,9 @@ func (env *Env) dumpCmd(cmdName string, cmdArgs ...string) string {
 //creates a multi-line string which is bash compatible
 func (env *Env) CreateBashCommand(cmdName string, cmdArgs ...string) string {
 	sb := &strings.Builder{}
-	sb.WriteString("#!/bin/bash")
-	sb.WriteString("# this is not the script which has been executed, but an approximation")
+	sb.WriteString("#\n")
+	sb.WriteString("#!/bin/bash\n")
+	sb.WriteString("# this is not the script which has been executed, but an approximation\n")
 	sb.WriteString("cd ")
 	sb.WriteString(env.Dir)
 	sb.WriteString("\n")
@@ -169,5 +183,27 @@ func (env *Env) CreateBashCommand(cmdName string, cmdArgs ...string) string {
 		sb.WriteString(" ")
 		sb.WriteString(arg)
 	}
+	sb.WriteString("\n")
 	return sb.String()
+}
+
+// strip '\n' or read until EOF, return error if read error
+func readline(reader io.Reader) (line []byte, err error) {
+	line = make([]byte, 0, 100)
+	for {
+		b := make([]byte, 1)
+		n, er := reader.Read(b)
+		if n > 0 {
+			c := b[0]
+			if c == '\n' { // end of line
+				break
+			}
+			line = append(line, c)
+		}
+		if er != nil {
+			err = er
+			return
+		}
+	}
+	return
 }
