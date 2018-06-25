@@ -7,8 +7,6 @@ import (
 	"sync"
 )
 
-type FormatField string
-
 type Git struct {
 	Env   *Env
 	mutex sync.Mutex
@@ -40,6 +38,24 @@ func (g *Git) Pull() error {
 
 	_, err := g.Env.ExecLines("git", "pull", "--all")
 	return err
+}
+
+func (g *Git) ListRemotes() (*RemoteList, error) {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+
+	res := &RemoteList{}
+	res.References = make(map[string]string)
+	lines, err := g.Env.ExecLines("git", "ls-remote")
+	for _, l := range lines {
+		if strings.HasPrefix(l, "From") {
+			res.Origin = l[5:]
+		} else {
+			hashAndHead := strings.Split(l, "\t")
+			res.References[strings.TrimSpace(hashAndHead[1])] = strings.TrimSpace(hashAndHead[0])
+		}
+	}
+	return res, err
 }
 
 func (g *Git) ListBranches() (branches []string, e error) {
@@ -268,6 +284,15 @@ type GitFile struct {
 
 func (g *GitFile) String() string {
 	return strconv.Itoa(g.Mode) + " - " + g.Type + " - " + g.Object + " - " + strconv.FormatInt(g.Size, 10) + " - " + g.Name
+}
+
+type FormatField string
+
+type RemoteList struct {
+	//e.g. https://github.com/...
+	Origin string
+	//e.g. HEAD -> c282fe12fc065314d20571aa7f2a3b3efb6d6324
+	References map[string]string
 }
 
 type GitObject struct {

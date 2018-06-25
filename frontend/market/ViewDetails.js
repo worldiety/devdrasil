@@ -135,7 +135,15 @@ class InstallRemoveIdleArea extends PullRightBox {
         this.setStatusUnknown();
 
         this.ctx.getApplication().getMarketRepository().getInstallInfo(plugin.getId()).then(info => {
-            this.setStatusUninstallable();
+            if (info.installed) {
+                if (info.repositoryVersionCurrent !== info.repositoryVersionRemote) {
+                    this.setStatusUpdateable();
+                } else {
+                    this.setStatusUninstallable();
+                }
+            } else {
+                this.setStatusInstallable();
+            }
         }).catch(err => {
             if (err instanceof NotFoundException) {
                 this.setStatusInstallable();
@@ -148,6 +156,21 @@ class InstallRemoveIdleArea extends PullRightBox {
     setStatusUnknown() {
         this.removeAll();
         this.add(new CircularProgressIndicator())
+    }
+
+    setStatusUpdateable() {
+        let btnUpdate = new RaisedButton();
+        btnUpdate.setText(this.ctx.getString("update"));
+        btnUpdate.setOnClick(evt => {
+            btnUpdate.setText(this.ctx.getString("is_updating"));
+            btnUpdate.setEnabled(false);
+            this.ctx.getApplication().getMarketRepository().update(this.plugin.getId()).then(_ => {
+                this.setStatusUninstallable();
+            }).catch(err => this.ctx.handleDefaultError(err));
+        });
+
+        this.removeAll();
+        this.add(btnUpdate);
     }
 
     setStatusInstallable() {

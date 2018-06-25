@@ -32,6 +32,23 @@ type PluginManager struct {
 	mutex   sync.Mutex
 }
 
+type PluginVersionInfo struct {
+	//e.g. my.company.plugin
+	Id string
+
+	Installed bool
+	//e.g. https://github.com/company/plugin
+	RepositoryURL string
+	//e.g. 01234
+	RepositoryVersionCurrent string
+	//e.g. abc123
+	RepositoryVersionRemote string
+	//e.g. master
+	RepositoryBranch string
+	//local directory
+	AppDirectory string
+}
+
 func NewPluginManager(dir string) *PluginManager {
 	return &PluginManager{rootDir: dir}
 }
@@ -71,8 +88,7 @@ func (r *PluginManager) Install(pluginId string, gitUrl string) error {
 		}
 	} else {
 		if len(files) > 0 {
-			log.Default.Warn(log.New("expected an empty or non-existing directory").Put("dir", pluginDir))
-			return fmt.Errorf("cannot install plugin '%s', directory is not empty", pluginId)
+			log.Default.Warn(log.New("plugin directory is not empty").Put("dir", pluginDir))
 		}
 	}
 
@@ -82,15 +98,18 @@ func (r *PluginManager) Install(pluginId string, gitUrl string) error {
 		return err
 	}
 	if !stat.IsDir() {
-		log.Default.Warn(log.New("expected a directory").Put("dir", pluginDir))
+		log.Default.Warn(log.New("not a directory").Put("dir", pluginDir))
 		return fmt.Errorf("cannot create plugin directory")
 	}
 
 	os.MkdirAll(pluginDir, defaultFilePermission)
 
 	appDir := filepath.Join(pluginDir, pluginApp)
+	//always recreate the app dir, which is always a git-clone
+	os.RemoveAll(appDir)
 	os.Mkdir(appDir, defaultFilePermission)
 
+	//if data-dir is there, ignore it. This is part of any backup-restore procedure or update
 	dataDir := filepath.Join(pluginDir, pluginData)
 	os.Mkdir(dataDir, defaultFilePermission)
 
@@ -121,7 +140,7 @@ func (r *PluginManager) Install(pluginId string, gitUrl string) error {
 	options.Tag = revision
 	options.Labels = map[string]string{dockerLabelPlugin: pluginId}
 	options.ContainerPort = 80
-	options.HostPort = 4000 //TODO
+	options.HostPort = 4000      //TODO
 	options.RemoveOnExit = false //does not work with restart always
 	options.Mounts = []*tools.Mount{{HostDir: dataDir, ContainerDir: "/" + pluginData, ReadOnly: false}}
 	options.Restart = "always"
@@ -138,22 +157,26 @@ func (r *PluginManager) Install(pluginId string, gitUrl string) error {
 }
 
 //checks if a plugin folder with data is available. Does not check if the plugin is functional. Returns the git hash
-func (r *PluginManager) GetVersion(pluginId string) (string, error) {
+func (r *PluginManager) GetVersion(pluginId string) (*PluginVersionInfo, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
+	info := &PluginVersionInfo{}
+	info.Id = pluginId
+
 	err := validatePluginId(pluginId)
 	if err != nil {
-		return "", err
+		return info, err
 	}
 	pluginAppDir := filepath.Join(r.rootDir, pluginId, pluginApp)
+	info.AppDirectory = pluginAppDir
 
 	files, err := ioutil.ReadDir(pluginAppDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", os.ErrNotExist
+			return info, os.ErrNotExist
 		} else {
-			return "", err
+			return info, err
 		}
 	} else {
 		if len(files) > 0 {
@@ -161,17 +184,29 @@ func (r *PluginManager) GetVersion(pluginId string) (string, error) {
 			head, err := git.GetHead()
 			if err != nil {
 				log.Default.Error(log.New("cannot get version").Put("dir", pluginAppDir).SetError(err))
-				return "n/a", nil
+				return info, nil
 			}
-			return head, nil
+
+			remoteList, err := git.ListRemotes()
+			if err != nil {
+				return info, err
+			}
+
+			info.Installed = true
+			info.RepositoryVersionCurrent = head
+			info.RepositoryVersionRemote = remoteList.References["HEAD"]
+			info.RepositoryBranch = pluginBranch
+			info.RepositoryURL = remoteList.Origin
+
+			return info, nil
 		} else {
-			return "", os.ErrNotExist
+			return info, os.ErrNotExist
 		}
 	}
 }
 
 //removes everything, including data, git, docker images, etc.
-func (r *PluginManager) Remove(pluginId string) error {
+func (r *PluginManager) Remove(pluginId string, keepData bool) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -180,9 +215,23 @@ func (r *PluginManager) Remove(pluginId string) error {
 		return err
 	}
 
-	//remove all plugin data, like the git repo and app data
+	//remove all plugin data, like the git repo and app data (only if not keepData)
 	pluginDir := filepath.Join(r.rootDir, pluginId)
-	errDirRemove := os.RemoveAll(pluginDir)
+	var errDirRemove error
+	if keepData {
+		files, err := ioutil.ReadDir(pluginDir)
+		errDirRemove = err
+		if err == nil {
+			for _, file := range files {
+				if file.Name() == pluginData {
+					continue
+				}
+				errDirRemove = os.RemoveAll(pluginDir)
+			}
+		}
+	} else {
+		errDirRemove = os.RemoveAll(pluginDir)
+	}
 
 	docker := r.getDocker(".")
 
@@ -242,27 +291,29 @@ func (r *PluginManager) Remove(pluginId string) error {
 }
 
 func (r *PluginManager) Update(pluginId string) error {
-	r.mutex.Lock()
-	defer r.mutex.Unlock()
+	version, err := r.GetVersion(pluginId)
+	if err != nil {
+		return err
+	}
+	if !version.Installed {
+		return fmt.Errorf("not installed: " + pluginId)
+	}
 
-	err := validatePluginId(pluginId)
+	if version.RepositoryVersionRemote == version.RepositoryVersionCurrent {
+		log.Default.Info(log.New("plugin already up-to-date").Put("plugin", pluginId).Put("dir", version.AppDirectory).Put("hash", version.RepositoryVersionCurrent))
+		return nil
+	}
+
+	log.Default.Info(log.New("plugin needs update").Put("plugin", pluginId).Put("dir", version.AppDirectory).Put("hash-current", version.RepositoryVersionCurrent).Put("hash-remote", version.RepositoryVersionRemote))
+
+	//remove everything but keep the data dir
+	err = r.Remove(pluginId, true)
 	if err != nil {
 		return err
 	}
 
-	pluginAppDir := filepath.Join(r.rootDir, pluginId, pluginApp)
-	git := r.getGit(pluginAppDir)
-	err = git.Pull()
-	if err != nil {
-		return err
-	}
-
-	err = git.Checkout(pluginBranch)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	//now just install again
+	return r.Install(pluginId, version.RepositoryURL)
 }
 
 //this is a security essential: avoid various filename attacks, like ../../etc/ because the id is used directly in the filesystem

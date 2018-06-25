@@ -12,8 +12,7 @@ import (
 )
 
 type PluginInfo struct {
-	Id      string
-	Version string
+	plugin.PluginVersionInfo
 }
 
 type EndpointMarket struct {
@@ -39,6 +38,8 @@ func (e *EndpointMarket) pluginsVerbs(writer http.ResponseWriter, request *http.
 		e.getPluginInfo(writer, request, pluginId)
 	case "POST":
 		e.installPlugin(writer, request, pluginId)
+	case "PUT":
+		e.updatePlugin(writer, request, pluginId)
 	case "DELETE":
 		e.deletePlugin(writer, request, pluginId)
 	default:
@@ -65,6 +66,50 @@ func (e *EndpointMarket) getIndex(writer http.ResponseWriter, request *http.Requ
 		return
 	}
 	WriteJSONBody(writer, index)
+}
+
+// Requires permissions UPDATE_PLUGIN
+//  @Path PUT /plugins/{id}
+//  @Header sid string
+//	@Return 200 github.com/worldiety/devdrasil/backend/PluginInfo
+//  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent)
+//  @Return 500 (for any other error)
+func (e *EndpointMarket) updatePlugin(writer http.ResponseWriter, request *http.Request, pluginId string) {
+	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.UPDATE_PLUGIN)
+	if usr == nil {
+		return
+	}
+
+	//some sleep for nice visualization
+	time.Sleep(2 * time.Second)
+
+	index, err := e.store.GetIndex()
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	plg := index.GetPlugin(pluginId)
+	if plg == nil {
+		http.Error(writer, pluginId, http.StatusNotFound)
+		return
+	}
+	if plg.Source.Type != "git" {
+		http.Error(writer, "sources of type "+plg.Source.Type+" are not supported", http.StatusInternalServerError)
+		return
+	}
+	err = e.pluginManager.Update(pluginId)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	version, err := e.pluginManager.GetVersion(pluginId)
+	if err != nil {
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	WriteJSONBody(writer, &PluginInfo{*version})
+
 }
 
 // Requires permissions INSTALL_PLUGIN
@@ -107,7 +152,7 @@ func (e *EndpointMarket) installPlugin(writer http.ResponseWriter, request *http
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	WriteJSONBody(writer, &PluginInfo{pluginId, version})
+	WriteJSONBody(writer, &PluginInfo{*version})
 }
 
 // Requires only an authenticated user. By design every user can query installed plugins, so that later UI components can fit themself properly
@@ -122,7 +167,6 @@ func (e *EndpointMarket) getPluginInfo(writer http.ResponseWriter, request *http
 		return
 	}
 
-
 	version, err := e.pluginManager.GetVersion(pluginId)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -134,7 +178,7 @@ func (e *EndpointMarket) getPluginInfo(writer http.ResponseWriter, request *http
 		}
 
 	}
-	WriteJSONBody(writer, &PluginInfo{pluginId, version})
+	WriteJSONBody(writer, &PluginInfo{*version})
 }
 
 // Requires permissions REMOVE_PLUGIN
@@ -144,7 +188,7 @@ func (e *EndpointMarket) getPluginInfo(writer http.ResponseWriter, request *http
 //  @Return 403 (if session id is invalid | if session user is inactive | if session user is absent)
 //  @Return 500 (for any other error)
 func (e *EndpointMarket) deletePlugin(writer http.ResponseWriter, request *http.Request, pluginId string) {
-	_, usr := GetSessionAndUser(e.sessions, e.users, writer, request)
+	_, usr := validate(e.sessions, e.users, e.permissions, writer, request, user.UPDATE_PLUGIN)
 	if usr == nil {
 		return
 	}
@@ -163,7 +207,7 @@ func (e *EndpointMarket) deletePlugin(writer http.ResponseWriter, request *http.
 		}
 	}
 
-	err = e.pluginManager.Remove(pluginId)
+	err = e.pluginManager.Remove(pluginId, false)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return

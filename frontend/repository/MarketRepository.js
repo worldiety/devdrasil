@@ -249,11 +249,21 @@ class PluginInstallInfo {
     /**
      *
      * @param {string} id
-     * @param {string} version
+     * @param {boolean} installed
+     * @param {string} repositoryUrl
+     * @param {string} repositoryVersionCurrent
+     * @param {string} repositoryVersionRemote
+     * @param {string} repositoryBranch
+     * @param {string} appDirectory
      */
-    constructor(id, version) {
+    constructor(id, installed, repositoryUrl, repositoryVersionCurrent, repositoryVersionRemote, repositoryBranch, appDirectory) {
         this.id = id;
-        this.version = version;
+        this.installed = installed;
+        this.repositoryUrl = repositoryUrl;
+        this.repositoryVersionCurrent = repositoryVersionCurrent;
+        this.repositoryVersionRemote = repositoryVersionRemote;
+        this.repositoryBranch = repositoryBranch;
+        this.appDirectory = appDirectory;
     }
 }
 
@@ -299,6 +309,18 @@ class MarketRepository {
     }
 
     /**
+     * Tries to update the given plugin id
+     * @param {string} pluginId
+     * @return {Promise<void>}
+     */
+    async update(pluginId) {
+        let session = await this.sessionProvider.getSession();
+        return restUpdate(this.fetcher, session.sid, pluginId).then(raw => {
+            return throwFromHTTP(raw);
+        });
+    }
+
+    /**
      * Tries to remove the given plugin id
      * @param {string} pluginId
      * @return {Promise<void>}
@@ -320,7 +342,7 @@ class MarketRepository {
         return restInstallInfo(this.fetcher, session.sid, pluginId).then(raw => {
             return throwFromHTTP(raw).then(raw => raw.json());
         }).then(json => {
-            return new PluginInstallInfo(json["Id"], json["Version"])
+            return new PluginInstallInfo(json["Id"], json["Installed"], json["RepositoryURL"], json["RepositoryVersionCurrent"], json["RepositoryVersionRemote"], json["RepositoryBranch"], json["AppDirectory"])
         });
     }
 
@@ -343,6 +365,17 @@ function restIndex(fetcher, sid) {
 function restInstall(fetcher, sid, pid) {
     let cfg = {
         method: 'POST',
+        headers: {
+            'sid': sid,
+        },
+        cache: 'no-store'
+    };
+    return fetcher.fetchRaw("/plugins/" + pid, cfg)
+}
+
+function restUpdate(fetcher, sid, pid) {
+    let cfg = {
+        method: 'PUT',
         headers: {
             'sid': sid,
         },
