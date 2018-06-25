@@ -122,8 +122,10 @@ func (r *PluginManager) Install(pluginId string, gitUrl string) error {
 	options.Labels = map[string]string{dockerLabelPlugin: pluginId}
 	options.ContainerPort = 80
 	options.HostPort = 4000 //TODO
-	options.RemoveOnExit = true
+	options.RemoveOnExit = false //does not work with restart always
 	options.Mounts = []*tools.Mount{{HostDir: dataDir, ContainerDir: "/" + pluginData, ReadOnly: false}}
+	options.Restart = "always"
+	options.HostIP = "127.0.0.1"
 
 	cid, err := docker.Start(options)
 	if err != nil {

@@ -40,6 +40,9 @@ type StartOptions struct {
 	//Docker image tag
 	Tag string
 
+	//the ip of the host to bind, if empty binds to 0.0.0.0 and makes it public
+	HostIP string
+
 	HostPort int
 
 	ContainerPort int
@@ -52,6 +55,9 @@ type StartOptions struct {
 
 	//removes an exited "unuseful" stopped container automatically
 	RemoveOnExit bool
+
+	//one of no | on-failure | unless-stopped | always
+	Restart string
 }
 
 type Mount struct {
@@ -132,6 +138,10 @@ func (d *Docker) Start(options *StartOptions) (ContainerId, error) {
 		args = append(args, "--label", key+"="+value)
 	}
 
+	if len(options.Restart) > 0 {
+		args = append(args, "--restart", options.Restart)
+	}
+
 	for _, mount := range options.Mounts {
 		//type=bind,source="$(pwd)"/target,target=/app
 		mountCmd := "type=bind,source=" + mount.HostDir + ",target=" + mount.ContainerDir + ""
@@ -145,7 +155,12 @@ func (d *Docker) Start(options *StartOptions) (ContainerId, error) {
 		args = append(args, "--rm")
 	}
 
-	args = append(args, "-p", strconv.Itoa(options.HostPort)+":"+strconv.Itoa(options.ContainerPort), options.Repository+":"+options.Tag)
+	tmpIp := options.HostIP
+	if len(tmpIp) > 0 {
+		tmpIp += ":"
+	}
+
+	args = append(args, "-p", tmpIp+strconv.Itoa(options.HostPort)+":"+strconv.Itoa(options.ContainerPort), options.Repository+":"+options.Tag)
 
 	lines, err := d.Env.ExecLines("docker", args...)
 	if err != nil {
