@@ -58,4 +58,5 @@
     <string name="is_updating">wird aktualisiert</string>
     <string name="update">Aktualisieren</string>
     <string name="locale">de-DE</string>
+    <string name="builder_title">Plugin-Editor</string>
 </resources>

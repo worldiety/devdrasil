@@ -6,6 +6,7 @@ export {UISDashboard}
 
 class UISDashboard extends DefaultUserInterfaceState {
 
+
     static NAME() {
         return "dashboard";
     }
