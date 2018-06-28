@@ -75,33 +75,7 @@ class Toolbar extends Box {
 
         let menu = new Menu();
         menu.add("New View", _ => {
-            showTextInputDialog(ctx, "hallo", "", text => {
-                modelController.getValue().entities.push(new View(text, new ViewModel()));
-                modelController.notifyValueChanged();
-            }, textField => {
-                textField.setHelperText("");
-
-                if (textField.getText().length === 0) {
-                    textField.setHelperText("Darf nicht leer sein", true);
-                    return false;
-                }
-                if (!textField.getText().startsWith("View")) {
-                    textField.setHelperText("Muss mit View anfangen", true);
-                    return false;
-                }
-
-                if (textField.getText() === "View") {
-                    textField.setHelperText("Darf nicht View heißen", true);
-                    return false;
-                }
-
-                if (modelController.getValue().nameExists(textField.getText())) {
-                    textField.setHelperText("Name muss eindeutig sein", true);
-                    return false;
-                }
-
-                return true;
-            });
+            new ViewModelCreator(ctx, modelController).showNewDialog();
 
         });
 
@@ -115,3 +89,73 @@ class Toolbar extends Box {
 
 }
 
+
+class NamedElementCreator {
+    /**
+     * @param {UserInterfaceState} ctx
+     * @param {AppModelController} appViewModel
+     */
+    constructor(ctx, appViewModel) {
+        this.ctx = ctx;
+        this.appViewModel = appViewModel;
+    }
+
+    showNewDialog() {
+        let prefix = this.getPrefix();
+        showTextInputDialog(this.ctx, this.ctx.getString("builder_create_x", prefix), "", text => {
+            this.addToModel(this.appViewModel.getValue(), text);
+            this.appViewModel.notifyValueChanged();
+        }, textField => {
+            textField.setHelperText("");
+
+            if (textField.getText().length === 0) {
+                textField.setHelperText(this.ctx.getString("builder_invalid_identifier"), true);
+                return false;
+            }
+            if (!textField.getText().startsWith(prefix)) {
+                textField.setHelperText(this.ctx.getString("builder_identifier_prefix_x", prefix), true);
+                return false;
+            }
+
+            if (textField.getText() === prefix) {
+                textField.setHelperText(this.ctx.getString("builder_invalid_identifier"), true);
+                return false;
+            }
+
+            if (this.appViewModel.getValue().nameExists(textField.getText())) {
+                textField.setHelperText(this.ctx.getString("builder_identifier_notunique"), true);
+                return false;
+            }
+
+            return true;
+        });
+    }
+
+    /**
+     * @return {string}
+     */
+    getPrefix() {
+        throw new Error("abstract method");
+    }
+
+    /**
+     *
+     * @param {AppModel} appModel
+     * @param {string} name
+     */
+    addToModel(appModel, name) {
+        throw new Error("abstract method");
+    }
+}
+
+
+class ViewModelCreator extends NamedElementCreator {
+
+    getPrefix() {
+        return "View";
+    }
+
+    addToModel(appModel, name) {
+        appModel.entities.push(new View(name, new ViewModel()));
+    }
+}
