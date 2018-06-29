@@ -6,6 +6,9 @@ import {ES6Frontend} from "./ES6Frontend.js";
 
 export {AppModelController}
 
+/**
+ *  @type {Observable<AppModel>}
+ */
 class AppModelController extends Observable {
 
     constructor() {

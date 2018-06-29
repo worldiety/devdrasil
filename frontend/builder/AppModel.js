@@ -35,6 +35,20 @@ class AppModel {
         }
         return false;
     }
+
+    /**
+     * searches an entity by name
+     * @param name
+     * @return {Entity|null}
+     */
+    findEntity(name) {
+        for (let e of this.entities) {
+            if (e.name === name) {
+                return e;
+            }
+        }
+        return null;
+    }
 }
 
 /**

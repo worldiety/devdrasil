@@ -59,8 +59,10 @@
     <string name="update">Aktualisieren</string>
     <string name="locale">de-DE</string>
     <string name="builder_title">Plugin-Editor</string>
-    <string name="builder_create_x">Bitte gib  einen Bezeichner für eine neue Klasse vom Typ "%s" an.</string>
+    <string name="builder_create_x">Bitte gib einen Bezeichner für eine neue Klasse vom Typ "%s" an.</string>
     <string name="builder_invalid_identifier">Der Bezeichner ist ungültig.</string>
     <string name="builder_identifier_prefix_x">Der Bezeichner muss mit "%s" anfangen.</string>
     <string name="builder_identifier_notunique">Der Bezeichner ist nicht eindeutig.</string>
+    <string name="builder_new_view">Neue View</string>
+    <string name="builder_new_entity">Neue Entität</string>
 </resources>

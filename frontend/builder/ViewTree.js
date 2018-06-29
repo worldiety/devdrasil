@@ -27,7 +27,7 @@ import {
     TextField,
     TwoLineLeadingAndTrailingIcon
 } from "/wwt/components.js";
-import {View, ViewModel} from "./AppModel.js";
+import {Entity, View, ViewModel} from "./AppModel.js";
 
 
 export {ViewTree}
@@ -35,56 +35,87 @@ export {ViewTree}
 class ViewTree extends Box {
     /**
      * @param {UserInterfaceState} ctx
-     * @param {AppModelController} appViewModel
      */
-    constructor(ctx, appViewModel) {
+    constructor(ctx) {
         super();
         this.ctx = ctx;
-        this.appViewModel = appViewModel;
-        appViewModel.addObserver(ctx.getLifecycle(), model => this.rebuildUI(model));
+        this.onSelectedListener = null;
     }
 
     /**
      *
      * @param {AppModel} model
+     * @param {Observable<AppModel>}observable
      */
-    rebuildUI(model) {
+    setModel(model, observable) {
         this.removeAll();
 
-        let toolbar = new Toolbar(this.ctx, this.appViewModel);
+        let toolbar = new Toolbar(this.ctx, observable);
         this.add(toolbar);
 
-        let listView = new ListView();
-        listView.setInteractive(true);
+        this.listView = new ListView();
+        this.listView.setInteractive(true);
         for (let view of model.entities) {
-            listView.add(view.name, true);
+            let entry = this.listView.add(view.name, true);
+            entry.onclick = evt => {
+                let idx = this.listView.indexOf(evt.target);
+                this.listView.setSelected(idx);
+
+                if (this.onSelectedListener != null) {
+                    this.onSelectedListener(view);
+                }
+            }
         }
 
-        this.add(listView);
+        this.add(this.listView);
     }
 
+    /**
+     *
+     * @param {Observable<AppModel>}observable
+     */
+    bind(observable) {
+        observable.addObserver(this.getLifecycle(), model => this.setModel(model, observable));
+    }
+
+
+    /**
+     *
+     * @param {function(Class)} onSelected
+     */
+    setOnSelectedListener(onSelected) {
+        this.onSelectedListener = onSelected;
+    }
 }
 
 
 class Toolbar extends Box {
     /**
-     * @param {AppModelController} modelController
+     * @param {UserInterfaceState} ctx
+     * @param {Observable<AppModel>} observable
      */
-    constructor(ctx, modelController) {
+    constructor(ctx, observable) {
         super();
 
-        let menu = new Menu();
-        menu.add("New View", _ => {
-            new ViewModelCreator(ctx, modelController).showNewDialog();
 
+        this.getElement().style.backgroundColor = "#f0f0f0";
+        this.getElement().style.borderBottom = "#d0d0d0 solid 1px";
+
+        let menu = new Menu();
+        menu.add(ctx.getString("builder_new_entity"), _ => {
+            new EntityModelCreator(ctx, observable).showNewDialog();
+        });
+
+        menu.add(ctx.getString("builder_new_view"), _ => {
+            new ViewModelCreator(ctx, observable).showNewDialog();
         });
 
         let btnAdd = new FlatButton();
-        btnAdd.setIcon(new Icon("+"));
+        btnAdd.setIcon(new Icon("add"));
         btnAdd.setOnClick(_ => {
-            menu.popup(btnAdd);
+            menu.popup(btnAdd, true);
         });
-        this.add(btnAdd);
+        this.add(new PullRightBox(btnAdd));
     }
 
 }
@@ -93,18 +124,18 @@ class Toolbar extends Box {
 class NamedElementCreator {
     /**
      * @param {UserInterfaceState} ctx
-     * @param {AppModelController} appViewModel
+     * @param {Observable<AppModel>} observable
      */
-    constructor(ctx, appViewModel) {
+    constructor(ctx, observable) {
         this.ctx = ctx;
-        this.appViewModel = appViewModel;
+        this.observable = observable;
     }
 
     showNewDialog() {
         let prefix = this.getPrefix();
-        showTextInputDialog(this.ctx, this.ctx.getString("builder_create_x", prefix), "", text => {
-            this.addToModel(this.appViewModel.getValue(), text);
-            this.appViewModel.notifyValueChanged();
+        showTextInputDialog(this.ctx, this.ctx.getString("builder_create_x", this.getEntityName()), "", text => {
+            this.addToModel(this.observable.getValue(), text);
+            this.observable.notifyValueChanged();
         }, textField => {
             textField.setHelperText("");
 
@@ -112,7 +143,7 @@ class NamedElementCreator {
                 textField.setHelperText(this.ctx.getString("builder_invalid_identifier"), true);
                 return false;
             }
-            if (!textField.getText().startsWith(prefix)) {
+            if (prefix.length > 0 && !textField.getText().startsWith(prefix)) {
                 textField.setHelperText(this.ctx.getString("builder_identifier_prefix_x", prefix), true);
                 return false;
             }
@@ -122,8 +153,15 @@ class NamedElementCreator {
                 return false;
             }
 
-            if (this.appViewModel.getValue().nameExists(textField.getText())) {
+            if (this.observable.getValue().nameExists(textField.getText())) {
                 textField.setHelperText(this.ctx.getString("builder_identifier_notunique"), true);
+                return false;
+            }
+
+            let regex = new RegExp("^[A-Z][A-Za-zd_]*$");
+
+            if (!regex.test(textField.getText())) {
+                textField.setHelperText(this.ctx.getString("builder_invalid_identifier"), true);
                 return false;
             }
 
@@ -136,6 +174,13 @@ class NamedElementCreator {
      */
     getPrefix() {
         throw new Error("abstract method");
+    }
+
+    /**
+     * @return {string}
+     */
+    getEntityName() {
+        return this.getPrefix();
     }
 
     /**
@@ -157,5 +202,20 @@ class ViewModelCreator extends NamedElementCreator {
 
     addToModel(appModel, name) {
         appModel.entities.push(new View(name, new ViewModel()));
+    }
+}
+
+class EntityModelCreator extends NamedElementCreator {
+
+    getPrefix() {
+        return "";
+    }
+
+    getEntityName() {
+        return "Entity";
+    }
+
+    addToModel(appModel, name) {
+        appModel.entities.push(new Entity(name, new ViewModel()));
     }
 }
