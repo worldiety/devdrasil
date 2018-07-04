@@ -1,10 +1,18 @@
-import {AbsComponent, Box, CenterBox, CircularProgressIndicator, LayoutGrid, loadScript} from "/wwt/components.js";
+import {
+    AbsComponent,
+    Box,
+    CenterBox,
+    CircularProgressIndicator,
+    LayoutGrid,
+    LinearLayout,
+    loadScript
+} from "/wwt/components.js";
 import {DefaultUserInterfaceState, Main} from "/frontend/uis-default.js";
 import {AppModelController} from "./AppModelController.js";
 import {ViewTree} from "./ViewTree.js";
 import {ViewCodeEditor} from "./ViewCodeEditor.js";
-import {Entity} from "./AppModel.js";
-import {ViewEntity} from "./ViewEntity.js";
+import {Class} from "./AppModel.js";
+import {ViewClassEditor} from "./ViewClassEditor.js";
 
 export {UISBuilder}
 
@@ -44,11 +52,9 @@ class UISBuilder extends DefaultUserInterfaceState {
         let leftBox = new ViewLeftEditorBox();
         leftBox.add(viewTree);
 
-        let gridView = new LayoutGrid();
-        gridView.getElement().style.setProperty("--mdc-layout-grid-gutter-desktop", "0px");
-        gridView.getElement().style.padding = "0px";
-        gridView.add(leftBox, 3);
-        gridView.add(this.editorBox, 9);
+        let gridView = new LinearLayout();
+        gridView.addWithWeight(leftBox, "25%");
+        gridView.addWithWeight(this.editorBox, "calc(75% - 1px)");
 
 
         viewTree.setOnSelectedListener(entity => {
@@ -67,9 +73,9 @@ class UISBuilder extends DefaultUserInterfaceState {
             c.destroy();
         }
 
-        if (entity instanceof Entity) {
-            let view = new ViewEntity(this);
-            view.bind(this.appModelController, entity.name);
+        if (entity instanceof Class) {
+            let view = new ViewClassEditor(this);
+            view.bind(this.appModelController, entity.asType());
             this.editorBox.add(view);
             return;
         }

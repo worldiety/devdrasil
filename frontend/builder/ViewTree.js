@@ -27,7 +27,7 @@ import {
     TextField,
     TwoLineLeadingAndTrailingIcon
 } from "/wwt/components.js";
-import {Entity, View, ViewModel} from "./AppModel.js";
+import {App, Class, Field, TYPES} from "./AppModel.js";
 
 
 export {ViewTree}
@@ -44,8 +44,8 @@ class ViewTree extends Box {
 
     /**
      *
-     * @param {AppModel} model
-     * @param {Observable<AppModel>}observable
+     * @param {App} model
+     * @param {Observable<App>}observable
      */
     setModel(model, observable) {
         this.removeAll();
@@ -55,7 +55,7 @@ class ViewTree extends Box {
 
         this.listView = new ListView();
         this.listView.setInteractive(true);
-        for (let view of model.entities) {
+        for (let view of model.getClasses()) {
             let entry = this.listView.add(view.name, true);
             entry.onclick = evt => {
                 let idx = this.listView.indexOf(evt.target);
@@ -72,7 +72,7 @@ class ViewTree extends Box {
 
     /**
      *
-     * @param {Observable<AppModel>}observable
+     * @param {Observable<App>}observable
      */
     bind(observable) {
         observable.addObserver(this.getLifecycle(), model => this.setModel(model, observable));
@@ -185,7 +185,7 @@ class NamedElementCreator {
 
     /**
      *
-     * @param {AppModel} appModel
+     * @param {App} appModel
      * @param {string} name
      */
     addToModel(appModel, name) {
@@ -201,7 +201,7 @@ class ViewModelCreator extends NamedElementCreator {
     }
 
     addToModel(appModel, name) {
-        appModel.entities.push(new View(name, new ViewModel()));
+        appModel.classes.push(new Class(name));
     }
 }
 
@@ -215,7 +215,10 @@ class EntityModelCreator extends NamedElementCreator {
         return "Entity";
     }
 
+
     addToModel(appModel, name) {
-        appModel.entities.push(new Entity(name, new ViewModel()));
+        let entity = new Class(name);
+        entity.fields.push(new Field("test", TYPES.String));
+        appModel.classes.push(entity);
     }
 }

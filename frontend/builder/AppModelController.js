@@ -1,18 +1,16 @@
 import {Observable} from "/wwt/components.js";
-import {AppModel} from "./AppModel.js";
-import {GoBackend} from "./GoBackend.js";
-import {ES6Frontend} from "./ES6Frontend.js";
+import {App} from "./AppModel.js";
 
 
 export {AppModelController}
 
 /**
- *  @type {Observable<AppModel>}
+ *  @type {Observable<App>}
  */
 class AppModelController extends Observable {
 
     constructor() {
         super();
-        this.setValue(new AppModel("", "", new GoBackend(), new ES6Frontend()));
+        this.setValue(new App());
     }
 }

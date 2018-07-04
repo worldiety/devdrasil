@@ -1,26 +1,218 @@
-export {AppModel, AbsPlatform, Class, Entity, View, ViewModel}
+export {
+    Method,
+    SourceCode,
+    Variable,
+    Type,
+    TYPES,
+    Field,
+    Module,
+    PLATFORMS,
+    App,
+    Class,
+    TYPE_FACTORIES
+}
+
 
 /**
- * The receipt to create apps or plugins.
+ * A type refers to the dot-separated unique name of a class or build-in type, e.g. modulea.moduleb.MyClass
  */
-class AppModel {
+class Type {
+    /**
+     *
+     * @param {string} fullQualifiedName
+     */
+    constructor(fullQualifiedName = "") {
+        /**
+         * The id of the type which is the FullQualifiedName, like "my.module.MyType" or a base type like "void", "string", "float64" etc.
+         *
+         * @type {string}
+         */
+        this.fullQualifiedName = fullQualifiedName;
+        /**
+         * A type may have other generics, like a list or a map.
+         *
+         * @type {Array<Type>}
+         */
+        this.generics = [];
+    }
+
+    /**
+     * @return {Object}
+     */
+    toObject() {
+        let obj = {};
+        obj["id"] = this.fullQualifiedName;
+        obj["generics"] = [];
+        for (let g of this.generics) {
+            obj["generics"].push(g.toObject());
+        }
+        return obj;
+    }
 
     /**
      *
-     * @param {AbsPlatform} frontend. Which platform is in the backend?
-     * @param {AbsPlatform} backend. Which platform is in the frontend?
-     * @param {string} appId. A unique something like e.g. "com.mydomain.myplugin"
-     * @param {string} appDoc. A description of the app e.g. "This plugin models a build server which provides the following ..."
-     * @param {Array<Entity>} entities, which are custom data types, e.g. like a "car" or a "motor"
-     * @param {Array<Repository>} repositories. Each repository refers to exact to one entity and provides CRUD functionalities.
+     * @param {Object} obj
      */
-    constructor(appId, appDoc, backend, frontend, entities = [], repositories = []) {
-        this.appId = appId;
-        this.appDoc = appDoc;
-        this.entities = entities;
-        this.repositories = repositories;
+    fromObject(obj) {
+        this.fullQualifiedName = obj["id"];
+        this.generics = [];
+        for (let o of obj["generics"]) {
+            let g = new Type();
+            g.fromObject(o);
+            this.generics.push(g);
+        }
     }
 
+    toString() {
+        if (this.generics.length === 0) {
+            return this.fullQualifiedName;
+        } else {
+            return this.fullQualifiedName + "<" + this.generics.join(",") + ">";
+        }
+    }
+}
+
+/**
+ * A module has private and exported classes. Child modules are always exported.
+ */
+class Module {
+    constructor() {
+        /**
+         * A per parent unique name, something like "mymodule".  May not contain dots (.)
+         * @type {string}
+         */
+        this.name = "";
+        /**
+         * Something like "This module contains the logic for handling..."
+         * @type {string}
+         */
+        this.doc = "";
+
+        /**
+         * A module can contain other (public) child modules.
+         *
+         *
+         * @type {Array<Module>}
+         */
+        this.modules = [];
+
+        /**
+         * A module can contain public and private classes.
+         * @type {Array<Class>}
+         */
+        this.classes = [];
+
+        /**
+         * The parent of this module is always a module or null, if it is in the root module.
+         * @type {Module|null}
+         */
+        this.parent = null;
+    }
+
+    /**
+     * Returns a child module by name. Only finds direct children.
+     * @param name
+     * @return {Module|null}
+     */
+    getModule(name) {
+        for (let mod of this.modules) {
+            if (mod.name === name) {
+                return mod;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns a child class by name. Only finds direct children.
+     * @param name
+     * @return {Class|null}
+     */
+    getClass(name) {
+        for (let cl of this.classes) {
+            if (cl.name === name) {
+                return cl;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * We want full control over serialization and deserialization process.
+     * @return {Object}
+     */
+    toObject() {
+        let json = {};
+        json["name"] = this.name;
+        json["doc"] = this.doc;
+        json["modules"] = [];
+        for (let mod of this.modules) {
+            json["modules"].push(mod.toObject());
+        }
+        json["classes"] = [];
+        for (let cl of this.classes) {
+            json["classes"].push(cl.toObject());
+        }
+        return json;
+    }
+
+    /**
+     * We want custom types and restore cycles. So we need a custom deserialize method.
+     * @param {Object} obj
+     */
+    fromObject(obj) {
+        this.name = obj["name"];
+        this.doc = obj["doc"];
+        this.modules = [];
+        for (let o of obj["modules"]) {
+            let mod = new Module();
+            mod.fromObject(o);
+            this.modules.push(mod);
+        }
+
+        this.classes = [];
+        for (let o of obj["classes"]) {
+            let cl = new Class();
+            cl.fromObject(o);
+            cl.parent = this;
+            this.classes.push(cl);
+        }
+    }
+
+
+    /**
+     * loops over all classes defined by this module and it's children modules.
+     * @param {function(Class)} closure
+     */
+    forEachClass(closure) {
+        for (let cl of this.classes) {
+            closure(cl);
+        }
+
+        for (let mod of this.modules) {
+            mod.forEachClass(closure);
+        }
+    }
+
+    /**
+     * Just like {@link #forEachClass}, but returns a list of classes.
+     *
+     * @return {Array<Class>}
+     */
+    getClasses() {
+        let tmp = [];
+        this.forEachClass(cl => tmp.push(cl));
+        return tmp;
+    }
+}
+
+/**
+ * The receipt to create apps or plugins. An app is basically just a {@link Module}.
+ */
+class App extends Module {
+    constructor() {
+        super();
+    }
 
     /**
      * Checks if the name does exist in any (global) configuration.
@@ -28,7 +220,7 @@ class AppModel {
      * @return {boolean}
      */
     nameExists(str) {
-        for (let e of this.entities) {
+        for (let e of this.classes) {
             if (e.name === str) {
                 return true;
             }
@@ -36,270 +228,510 @@ class AppModel {
         return false;
     }
 
+
     /**
-     * searches an entity by name
-     * @param name
-     * @return {Entity|null}
+     * Returns all available types, including the basic ones and all self defined.
+     * @param {boolean} includeVoid, if true the void type is included
+     * @param {boolean} includeLists, if true, generates List-Types with all
+     * @param {boolean} includeMap, if true, includes maps with string as key and all other types as values.
+     * @return {Array<Type>}
      */
-    findEntity(name) {
-        for (let e of this.entities) {
-            if (e.name === name) {
-                return e;
+    getTypes(includeVoid = false, includeLists = false, includeMap = false) {
+        let res = [];
+
+
+        for (let key in TYPES) {
+            if (!includeVoid && TYPES[key].fullQualifiedName === TYPES.Void.fullQualifiedName) {
+                continue;
+            }
+            res.push(TYPES[key]);
+        }
+
+        this.forEachClass(cl => res.push(cl.asType()));
+
+        let tmp = [...res];
+        if (includeLists) {
+            for (let type of tmp) {
+                if (type.id === TYPES.Void.fullQualifiedName) {
+                    continue;
+                }
+                res.push(TYPE_FACTORIES.NewList(type));
             }
         }
-        return null;
+
+        if (includeMap) {
+            for (let type of tmp) {
+                if (type.id === TYPES.Void.fullQualifiedName) {
+                    continue;
+                }
+                res.push(TYPE_FACTORIES.NewMap(TYPES.String, type));
+            }
+        }
+
+
+        return res;
     }
+
+    /**
+     * Tries to resolve a class in the context of the given app.
+     *
+     * @param {Type} type
+     * @return {Class|null}
+     */
+    resolveType(type) {
+        let parent = this;
+        let tokens = type.fullQualifiedName.split(".");
+        for (let i = 0; i < tokens.length - 1; i++) {
+            parent = parent.getModule(tokens[i]);
+            if (parent == null) {
+                return null;
+            }
+        }
+        let className = tokens[tokens.length - 1];
+        return parent.getClass(className);
+    }
+
+    /**
+     * Checks if the given type is a build-in type.
+     * @param {Type} type
+     */
+    isBuildInType(type) {
+        for (let bin of TYPES) {
+            if (type.fullQualifiedName === bin.id) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
 }
 
-/**
- * A platform denotes a language and framework combination. Most languages are platforms anyway, however there may be multiple platforms for each language also.
- */
-class AbsPlatform {
-
-}
-
 
 /**
- * The base for every generated class or struct is this class. It is language agnostic with regards to it's fields
- * but may provide methods of a concrete implementation.
+ * A class is a blue print to describe specific fields and methods for instances of this type.
+ * Inheritance is not possible and not planned. You have to use composition using fields.
+ *
+ * TODO introduce interface and polymorphism definition. Think about trait/default implementations.
+ * TODO think about go-like type composition
  */
 class Class {
+    constructor(name = "") {
+        /**
+         * A per parent unique name, something like "MyClass". May not contain dots (.)
+         * @type {string}
+         */
+        this.name = name;
+
+        /**
+         * Something like "This class represents the entity ..."
+         * @type {string}
+         */
+        this.doc = "";
+
+        /**
+         * The parent of this class is always a module or null, if it is in the root module.
+         * @type {Module|null}
+         */
+        this.parent = null;
+
+        /**
+         * The visibility of a class. True is for all, otherwise module wise only. Does not make it available to sub module.
+         * @type {boolean}
+         */
+        this.exported = true;
+
+        /**
+         * A class contains a bunch of fields.
+         * @type {Array<Field>}
+         */
+        this.fields = [];
+
+        /**
+         * A class contains a bunch of methods
+         * @type {Array<Method>}
+         */
+        this.methods = [];
+    }
+
+    /**
+     * @return {Object}
+     */
+    toObject() {
+        let obj = {};
+        obj["name"] = this.name;
+        obj["doc"] = this.doc;
+        obj["exported"] = this.exported;
+        obj["fields"] = [];
+        for (let f of this.fields) {
+            obj["fields"].push(f.toObject());
+        }
+
+        obj["methods"] = [];
+        for (let m of this.methods) {
+            obj["methods"].push(m.toObject());
+        }
+        return obj;
+    }
+
     /**
      *
-     * @param {string} name. The unique name of a field. Must start with uppercase letter and follow the convention of a public Go struct (camel case)
-     * @param {Array<Field>} fields. The fields of this entity.
-     * @param {Array<AbsMethod>} methods. The list of methods.
+     * @param {Object} obj
      */
-    constructor(name = "", fields = [], methods = []) {
-        this.name = name;
-        this.fields = fields;
-        this.methods = methods;
+    fromObject(obj) {
+        this.name = obj["name"];
+        this.doc = obj["doc"];
+        this.exported = obj["exported"];
+        this.fields = [];
+        for (let o of obj["fields"]) {
+            let field = new Field();
+            field.fromObject(o);
+            field.parent = this;
+            this.fields.push(field);
+        }
+
+        this.methods = [];
+        for (let m of obj["methods"]) {
+            let meth = new Method();
+            meth.fromObject(m);
+            meth.parent = this;
+            this.methods.push(meth);
+        }
+    }
+
+
+    /**
+     * Returns this class as type
+     * @return {Type}
+     */
+    asType() {
+        let fullQualifiedName = this.name;
+        let root = this.parent;
+        while (root != null) {
+            fullQualifiedName = root.name + "." + fullQualifiedName;
+        }
+        return new Type(fullQualifiedName);
     }
 }
 
+/**
+ * The base types, which are always available. Map and List should only occur as concrete instances. Do not modify them.
+ * @type {{Void: Type, String: Type, Int64: Type, Float64: Type, Bool: Type, List: Type, Map: Type}}
+ */
+const TYPES = {
+    Void: new Type("void"),
+    String: new Type("string"),
+    Int64: new Type("int64"),
+    Float64: new Type("float64"),
+    Bool: new Type("bool"),
+    List: new Type("List"),
+    Map: new Type("Map"),
+};
+
+const TYPE_FACTORIES = {
+    /**
+     * Creates a new list type
+     * @param type
+     * @return {Type}
+     * @constructor
+     */
+    NewList: function (type) {
+        let r = new Type("List");
+        r.generics.push(type);
+        return r;
+    },
+    /**
+     * Creates a new Map
+     * @param keyType
+     * @param valueType
+     * @return {Type}
+     * @constructor
+     */
+    NewMap: function (keyType, valueType) {
+        let r = new Type("Map");
+        r.generics.push(keyType);
+        r.generics.push(valueType);
+        return r;
+    },
+};
+
 
 /**
- * A custom data type, which consists of fields which are either build-in types or other entities. References to other Entities are only possible if a Repository is also defined.
+ * Walks up the module hierarchy to get the top most module, which is usually the {@link App}.
+ * @param {Module} module
+ * @return {Module}
  */
-class Entity extends Class {
+function getRootModule(module) {
+    let root = module;
+    while (root.parent != null) {
+        root = root.parent;
+    }
+    return root;
+}
+
+class Variable {
     /**
      *
-     * @param {string} name. The unique name of a field. Must start with uppercase letter and follow the convention of a public Go struct (camel case)
-     * @param {Array<Field>} fields. The fields of this entity.
+     * @param {string} name. The (entity) unique name of this field. Must start with lowercase letter and camel case
+     * @param {Type} type. A specific type which describes this field.
      */
-    constructor(name = "", fields = []) {
-        super(name, fields);
+    constructor(name = "", type = null) {
+        /**
+         * The unique name of the variable
+         * @type {string}
+         */
+        this.name = name;
+        /**
+         * The type of this variable. Not all types make sense, like the void type, and others may be illegal without generics (like list and maps).
+         * @type {Type}
+         */
+        this.type = type;
+
+        /**
+         * The documentation for this field, like "A 'fieldname' is used to represent ..."
+         *
+         * @type {string}
+         */
+        this.doc = "";
+
+        /**
+         * A variable may have different kind of parents, depending on the concrete kind of variable. E.g. a field always has a {@link Class} as a parent.
+         * @type {Method|Class}
+         */
+        this.parent = null;
+    }
+
+    /**
+     * @return {Object}
+     */
+    toObject() {
+        let obj = {};
+        obj["name"] = this.name;
+        if (this.type != null) {
+            obj["type"] = this.type.toObject();
+        }
+        obj["doc"] = this.doc;
+        return obj;
+    }
+
+    /**
+     *
+     * @param {Object} obj
+     */
+    fromObject(obj) {
+        this.name = obj["name"];
+        this.doc = obj["doc"];
+        this.type = null;
+        if (obj["type"] != null) {
+            this.type = new Type();
+            this.type.fromObject(obj["type"]);
+        }
     }
 }
 
 /**
  * A field is just a member of an Entity.
  */
-class Field {
+class Field extends Variable {
     /**
      *
      * @param {string} name. The (entity) unique name of this field. Must start with lowercase letter and camel case
-     * @param {AbsType} absType. An instance of a concrete descendant of an AbsType.
+     * @param {Type} type. A specific type which describes this field.
      */
-    constructor(name, absType) {
+    constructor(name = "", type = null) {
+        super(name, type);
+
+        /**
+         * Just like a class can be exported from a module, fields can be as well.
+         *
+         * @type {boolean}
+         */
+        this.exported = true;
+
+    }
+
+    toObject() {
+        let obj = super.toObject();
+        obj["exported"] = this.exported;
+        return obj;
+    }
+
+    fromObject(obj) {
+        super.fromObject(obj);
+        this.exported = obj["exported"];
+    }
+}
+
+
+/**
+ * Each class can have a method. It may also provide various source code implementations.
+ */
+class Method {
+    constructor(name = "") {
+        /**
+         * Part of the signature. The name of the method.
+         * @type {string}
+         */
         this.name = name;
-        this.absType = absType;
-    }
-}
 
-/**
- * Just a field, but it will get autowired from the context. Usually only works for members of a class.
- */
-class AutowiredField extends Field {
-    constructor(name, absType) {
-        super(name, absType);
-    }
-}
+        /**
+         * Part of the signature. A method may have multiple parameters, which are just variables.
+         * @type {Array<Variable>}
+         */
+        this.parameters = [];
 
-/**
- * An abstract source definition
- */
-class AbsSource {
+        /**
+         * Part of the signature. A method may return multiple result types. The actual capabilities depend on the concrete source implementation.
+         * @type {Array<Type>}
+         */
+        this.returns = [];
+
+        /**
+         * The concrete implementation, potentially in different languages.
+         *
+         * @type {Array<SourceCode>}
+         */
+        this.implementations = [];
+
+        /**
+         * Currently only class can have methods.
+         * @type {Class}
+         */
+        this.parent = null;
+    }
+
     /**
-     * @param {string} source. The actual source code in whatever language
+     * @return {Object}
      */
-    constructor(source = "") {
-        this.source = source;
-        //autogenerated source means, that the user may not change the implementation on his own
-        this.autogenerated = false;
+    toObject() {
+        let obj = {};
+        obj["name"] = this.name;
+        obj["parameters"] = [];
+        for (let p of this.parameters) {
+            obj["parameters"].push(p.toObject());
+        }
+        obj["returns"] = [];
+        for (let r of this.returns) {
+            obj["returns"].push(r.toObject());
+        }
+        obj["implementations"] = [];
+        for (let i of this.implementations) {
+            obj["implementations"].push(i.toObject());
+        }
+        return obj;
     }
-}
 
-/**
- * An abstract method definition with source
- */
-class AbsMethod extends AbsSource {
-    /**
-     * @param {Array<Field>}parameter
-     * @param {AbsType} result. The result of the method
-     * @param {string} doc. The documentation of this method.
-     * @param {string} source. The actual source code in whatever language
-     */
-    constructor(parameter = [], result = new VoidType(), doc = "", source = "") {
-        super(source);
-        this.parameter = parameter;
-        this.result = result;
-        this.doc = doc;
-        this.public = true;
-    }
-}
-
-/**
- * Represents a method with go(lang) source code
- */
-class GoMethodSource extends AbsMethod {
-    /**
-     * @param {Array<Field>}parameter
-     * @param {AbsType} result. The result of the method
-     * @param {string} doc. The documentation of this method.
-     * @param {string} source. The actual source code in Go(lang)
-     */
-    constructor(parameter = [], result = new VoidType(), doc = "", source = "") {
-        super(parameter, result, doc, source);
-        this.source = source;
-    }
-}
-
-/**
- * Represents a method with javascript source code
- */
-class JSMethodSource extends AbsMethod {
-    /**
-     * @param {Array<Field>}parameter
-     * @param {AbsType} result. The result of the method
-     * @param {string} doc. The documentation of this method.
-     * @param {string} source. The actual source code in Go(lang)
-     */
-    constructor(parameter = [], result = new VoidType(), doc = "", source = "") {
-        super(parameter, result, doc, source);
-        this.source = source;
-    }
-}
-
-/**
- * The non-instantiable super class of all field types
- */
-class AbsType {
-
-}
-
-/**
- * A list type wraps another type
- */
-class ListType extends AbsType {
     /**
      *
-     * @param {AbsType} boxType
+     * @param {Object} obj
      */
-    constructor(boxType) {
-        super();
-        this.boxType = boxType;
+    fromObject(obj) {
+        this.code = obj["code"];
+        this.platform = obj["platform"];
+        this.parameters = [];
+        this.returns = [];
+        this.implementations = [];
+
+        for (let o of obj["parameters"]) {
+            let p = new Variable();
+            p.fromObject(o);
+            p.parent = this;
+            this.parameters.push(p);
+        }
+
+        for (let o of obj["returns"]) {
+            let t = new Type();
+            t.fromObject(o);
+            this.returns.push(t);
+        }
+
+        for (let o of obj["implementations"]) {
+            let s = new SourceCode();
+            s.fromObject(o);
+            s.parent = this;
+            this.implementations.push(s);
+        }
     }
 }
 
 /**
- * The VoidType represents void, which is only applicable for result values of
- */
-class VoidType extends AbsType {
-}
-
-class StringType extends AbsType {
-}
-
-class Int64Type extends AbsType {
-}
-
-class Float64Type extends AbsType {
-}
-
-class BoolType extends AbsType {
-}
-
-class EntityType extends AbsType {
-    /**
-     *
-     * @param {Entity} entity
-     */
-    constructor(entity) {
-        super();
-        this.entity = entity;
-    }
-}
-
-/**
- * A repository just refers to a bunch of persisted entities all of the same type. It is always a singleton in the backend (e.g. Go) and frontend meaning (e.g. Javascript).
- * It is distinguishable from a service only because it does not contain any other things than working with that kind of entity.
+ * Source code can be created for various platforms. Why platform? Because there is no useful language without any base
+ * sdk. So when you talk about a language you usually mean a language specification, a concrete implementation
+ * and a SDK.
  *
- * Stereotype of the persistence layer.
+ * @type {{GO_1_x: string, ES6: string}}
  */
-class Repository extends Class {
+const PLATFORMS = {
+    /**
+     * Go 1.x with gc. At least go 1.11 is required.
+     */
+    GO_1_x: "Go 1.x",
+
+    /**
+     * ES6 or compatible is required.
+     */
+    ES6: "ES6"
+};
+
+/**
+ * One can attach a concrete hand written source code at multiple places, e.g. on {@link Method}s
+ */
+class SourceCode {
+    constructor(platform = "", code = "") {
+        /**
+         * A constant from {@link PLATFORMS}
+         *
+         * @type {string}
+         */
+        this.platform = platform;
+
+        /**
+         * The actual source code snipped. Lines are separated by \n
+         * @type {string}
+         */
+        this.code = code;
+
+
+        /**
+         * Currently only a method may have exactly 1:1 relation an implementation
+         * @type {Method}
+         */
+        this.parent = null;
+    }
+
+    /**
+     * Returns the code lines as string array
+     * @return {string[]}
+     */
+    getLines() {
+        return this.code.split("\n")
+    }
+
+    /**
+     * Sets the code as lines separated by line break \n
+     * @param {string[]} lines
+     */
+    setLines(lines) {
+        this.code = lines.join("\n");
+    }
+
+    /**
+     * @return {Object}
+     */
+    toObject() {
+        let obj = {};
+        obj["platform"] = this.platform;
+        obj["code"] = this.code;
+        return obj;
+    }
+
     /**
      *
-     * @param{string} name. Must be unique across all names
-     * @param {Entity} entity. Instance of an entity, which should be organized in a repo.
-     * @param {Array<AbsMethod>} methods, used to declare e.g. CRUD methods in the server side repository. So this must of the backend source type. Also used to declare custom filter/query methods. Other methods are accessible by using "this" (whatever that means in a certain language).
+     * @param {Object} obj
      */
-    constructor(name, entity, methods = []) {
-        super(name, []);
-        this.name = name;
-        this.entity = entity;
-    }
-
-}
-
-
-/**
- * A service is a singleton in the backend and forwarded to the client, just like a repository but entirely a custom implementation.
- *
- * Stereotype of the service layer.
- */
-class Service extends Class {
-    /**
-     * @see Class
-     * @param {string} name
-     * @param {Array<Field>} fields
-     * @param {Array<AbsMethod>} methods
-     * @param {Array<Service|Repository>} injections
-     */
-    constructor(name, fields, methods, injections) {
-        super(name, fields, methods);
-        this.injections = injections;
+    fromObject(obj) {
+        this.code = obj["code"];
+        this.platform = obj["platform"];
     }
 }
 
-/**
- * A view model is like a view controller with observable patterns in most methods.
- */
-class ViewModel extends Class {
-    /**
-     * @see Class.constructor
-     * @param {string} name
-     * @param {Array<Field>} fields
-     * @param {Array<AbsMethod>} methods
-     * @param {Array<Service|Repository>} injections
-     */
-    constructor(name, fields, methods, injections) {
-        super(name, fields, methods);
-        this.injections = injections;
-    }
-}
-
-/**
- * A view is always a client side concrete implementation and interacts with a specific view model (view controller), just like in MVVM thinking.
- * You implement methods in your view model and call the async observable methods. Registering to observables is only possible with a given lifecycle.
- */
-class View extends Class {
-    /**
-     * @see Class.constructor
-     * @param {string} name
-     * @param {ViewModel} viewModel
-     */
-    constructor(name, viewModel) {
-        super(name, [], []);
-    }
-}

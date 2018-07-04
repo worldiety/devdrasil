@@ -65,4 +65,7 @@
     <string name="builder_identifier_notunique">Der Bezeichner ist nicht eindeutig.</string>
     <string name="builder_new_view">Neue View</string>
     <string name="builder_new_entity">Neue Entität</string>
+    <string name="builder_new_view">Neue View</string>
+    <string name="builder_identifier">Bezeichner</string>
+    <string name="builder_type">Typ</string>
 </resources>
