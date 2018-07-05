@@ -10,6 +10,7 @@ import {
     ListView,
     LRLayout,
     Menu,
+    showConfirmationDialog,
     Span,
     TwoLineLeadingAndTrailingIcon,
     UserInterfaceState
@@ -89,19 +90,8 @@ class ViewCompanyList extends Card {
      * @param {Group} group
      */
     delete(group) {
-        let dlg = new Dialog();
-        dlg.add(new Body1(this.uis.getString("delete_company_x", group.name)));
-        let no = new Button(this.uis.getString("cancel"));
-        no.setOnClick(_ => {
-            dlg.close();
-        });
-        let yes = new Button(this.uis.getString("delete"));
-        yes.setOnClick(_ => {
+        showConfirmationDialog(this.uis, this.uis.getString("delete_x", group.name), this.uis.getString("cancel"), this.uis.getString("delete"), () => {
             this.uis.getApplication().getCompanyRepository().delete(group.id).then(_ => this.refresh()).catch(err => this.uis.handleDefaultError(err));
-            dlg.close();
         });
-        dlg.addFooter(no);
-        dlg.addFooter(yes);
-        dlg.show();
     }
 }

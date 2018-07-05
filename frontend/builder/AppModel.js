@@ -205,6 +205,17 @@ class Module {
         this.forEachClass(cl => tmp.push(cl));
         return tmp;
     }
+
+
+    /**
+     * Adds the given class. If another class with that name already exists, the existing one is removed.
+     * @param {Class} clazz
+     */
+    addClass(clazz) {
+        this.classes = this.classes.filter(value => value.name !== clazz.name);
+        this.classes.push(clazz);
+        clazz.parent = this;
+    }
 }
 
 /**
@@ -442,6 +453,19 @@ class Class {
         }
         return new Type(fullQualifiedName);
     }
+
+    /**
+     * Removes this class from it's parent module.
+     * @return {boolean}, true if successful
+     */
+    remove() {
+        if (this.parent == null) {
+            return false;
+        }
+        this.parent.classes = this.parent.classes.filter(value => value !== this);
+        this.parent = null;
+        return true;
+    }
 }
 
 /**
@@ -589,6 +613,19 @@ class Field extends Variable {
     fromObject(obj) {
         super.fromObject(obj);
         this.exported = obj["exported"];
+    }
+
+    /**
+     * Removes this field from it's parent
+     * @return {boolean}, true if successful
+     */
+    remove() {
+        if (this.parent == null) {
+            return false;
+        }
+        this.parent.fields = this.parent.fields.filter(value => value !== this);
+        this.parent = null;
+        return true;
     }
 }
 

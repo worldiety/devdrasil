@@ -246,7 +246,7 @@ class ViewModelCreator extends NamedElementCreator {
     }
 
     addToModel(appModel, name) {
-        appModel.classes.push(new Class(name));
+        appModel.addClass(new Class(name));
     }
 }
 
@@ -264,6 +264,6 @@ class EntityModelCreator extends NamedElementCreator {
     addToModel(appModel, name) {
         let entity = new Class(name);
         entity.fields.push(new Field("test", TYPE.String));
-        appModel.classes.push(entity);
+        appModel.addClass(entity);
     }
 }
