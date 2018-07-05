@@ -31,7 +31,11 @@ class UISBuilder extends DefaultUserInterfaceState {
         this.topBar.setTitle(this.getString("builder_title"));
 
 
-        this.appModelController = new AppModelController();
+        let id = "de.testapp";
+        let path = "/app.json";
+
+
+        this.appModelController = new AppModelController(this.getApplication().getProjectRepository(), id);
         let viewTree = new ViewTree(this);
         viewTree.bind(this.appModelController);
 
@@ -62,7 +66,10 @@ class UISBuilder extends DefaultUserInterfaceState {
         });
 
         this.setContent(gridView);
+
+
     }
+
 
     /**
      *

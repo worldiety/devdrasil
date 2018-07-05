@@ -27,7 +27,7 @@ import {
     TextField,
     TwoLineLeadingAndTrailingIcon
 } from "/wwt/components.js";
-import {App, Class, Field, TYPES} from "./AppModel.js";
+import {App, Class, Field, TYPE} from "./AppModel.js";
 
 
 export {ViewTree}
@@ -40,6 +40,17 @@ class ViewTree extends Box {
         super();
         this.ctx = ctx;
         this.onSelectedListener = null;
+        /**
+         *
+         * @type {null|Type}
+         */
+        this.lastSelected = null;
+
+        /**
+         *
+         * @type {null|int}
+         */
+        this.lastSelectedIdx = null;
     }
 
     /**
@@ -50,22 +61,56 @@ class ViewTree extends Box {
     setModel(model, observable) {
         this.removeAll();
 
+        if (model == null) {
+            return;
+        }
+
         let toolbar = new Toolbar(this.ctx, observable);
         this.add(toolbar);
 
         this.listView = new ListView();
         this.listView.setInteractive(true);
-        for (let view of model.getClasses()) {
-            let entry = this.listView.add(view.name, true);
+        for (let clazz of model.getClasses()) {
+            let entry = this.listView.add(clazz.name, true);
             entry.onclick = evt => {
                 let idx = this.listView.indexOf(evt.target);
                 this.listView.setSelected(idx);
+                this.lastSelected = clazz.asType();
+                this.lastSelectedIdx = idx;
 
                 if (this.onSelectedListener != null) {
-                    this.onSelectedListener(view);
+                    this.onSelectedListener(clazz);
                 }
             }
         }
+
+        //try to restore selection, first by name
+        let restored = false;
+        for (let clazz of model.getClasses()) {
+            if (clazz.asType() === this.lastSelected) {
+                if (this.onSelectedListener != null) {
+                    this.onSelectedListener(clazz);
+                    restored = true;
+                    break;
+                }
+            }
+        }
+
+        //and otherwise by index
+        if (!restored) {
+            let i = 0;
+            for (let clazz of model.getClasses()) {
+                if (this.lastSelectedIdx === i) {
+                    if (this.onSelectedListener != null) {
+                        this.onSelectedListener(clazz);
+                        restored = true;
+                        break;
+                    }
+                }
+                i++;
+            }
+        }
+
 
         this.add(this.listView);
     }
@@ -218,7 +263,7 @@ class EntityModelCreator extends NamedElementCreator {
 
     addToModel(appModel, name) {
         let entity = new Class(name);
-        entity.fields.push(new Field("test", TYPES.String));
+        entity.fields.push(new Field("test", TYPE.String));
         appModel.classes.push(entity);
     }
 }

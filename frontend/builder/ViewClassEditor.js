@@ -30,6 +30,7 @@ import {
     TextField,
     TwoLineLeadingAndTrailingIcon
 } from "/wwt/components.js";
+import {STEREOTYPE} from "./AppModel.js";
 
 
 export {ViewClassEditor}
@@ -45,24 +46,35 @@ class ViewClassEditor extends Box {
     }
 
     /**
+     * @param {Observable<App>} observable
      * @param {App} appModel
-     * @param {Class|null} entity
+     * @param {Class|null} clazz
      */
-    setModel(appModel, entity) {
+    setModel(observable, appModel, clazz) {
         this.removeAll();
-        if (entity == null) {
+        if (clazz == null) {
             return;
         }
 
         let grid = new LayoutGrid();
 
         let etName = new TextField();
-        etName.setEnabled(false);
-        etName.setText(entity.name);
+        etName.setEnabled(true);
+        etName.setCaption(this.ctx.getString("builder_class"));
+        etName.setText(clazz.name);
+        etName.onFocusLostAndChanged(textField => {
+            clazz.name = textField.getText();
+            observable.notifyValueChanged();
+
+        });
         grid.add(etName, 12);
 
+        let stereotype = new StereotypeSelector(this.ctx, clazz);
+        stereotype.setLabel(this.ctx.getString("builder_stereotype"));
+        grid.add(stereotype, 12);
 
-        for (let field of entity.fields) {
+
+        for (let field of clazz.fields) {
             let fieldView = new ViewField(this.ctx, appModel.getTypes(false, true, true), field);
             grid.add(fieldView, 12);
         }
@@ -78,7 +90,7 @@ class ViewClassEditor extends Box {
     bind(observable, type) {
         observable.addObserver(this.getLifecycle(), appModel => {
             let entity = appModel.resolveType(type);
-            this.setModel(appModel, entity);
+            this.setModel(observable, appModel, entity);
         });
     }
 }
@@ -116,7 +128,7 @@ class TypeSelector extends Select {
     /**
      *
      * @param ctx
-     * @param {Array<AbsType>} types
+     * @param {Array<Type>} types
      * @param {Field} field
      */
     constructor(ctx, types, field) {
@@ -125,17 +137,43 @@ class TypeSelector extends Select {
         for (let type of types) {
             this.add(new SelectModelEntry(type.toString(), type.toString(), false, type.toString() === field.type.toString()));
         }
-        this.addOnSelectionChangedListener((select, i, s) => field.absType = this.getSelectedType());
+        this.addOnSelectionChangedListener((select, i, s) => field.type = this.getSelectedType());
     }
 
     /**
      *
-     * @return {AbsType|null}
+     * @return {Type|null}
      */
     getSelectedType() {
         if (this.getSelectedIndex() < 0) {
             return null;
         }
         return this.types[this.getSelectedIndex()];
+    }
+}
+
+class StereotypeSelector extends Select {
+    /**
+     *
+     * @param ctx
+     * @param {Class} clazz
+     */
+    constructor(ctx, clazz) {
+        super();
+        for (let type of STEREOTYPE.VALUES()) {
+            this.add(new SelectModelEntry(type, type, false, clazz.hasStereotype(type)));
+        }
+        this.addOnSelectionChangedListener((select, i, s) => clazz.setStereotype(this.getSelectedType()));
+    }
+
+    /**
+     *
+     * @return {String|null}
+     */
+    getSelectedType() {
+        if (this.getSelectedIndex() < 0) {
+            return null;
+        }
+        return STEREOTYPE.VALUES()[this.getSelectedIndex()];
     }
 }

@@ -16,6 +16,7 @@ import {MarketRepository} from "./repository/MarketRepository.js";
 import {UISMarket} from "/frontend/market/UISMarket.js";
 import {UISMarketPlugin} from "/frontend/market/UISMarketPlugin.js";
 import {UISBuilder} from "./builder/UISBuilder.js";
+import {ProjectRepository} from "./builder/ProjectRepository.js";
 
 class ExampleApp extends Application {
 
@@ -113,6 +114,17 @@ class ExampleApp extends Application {
             this.marketRespository = new MarketRepository(this.getFetcher(), this.getSessionRepository());
         }
         return this.marketRespository;
+    }
+
+    /**
+     *
+     * @return {ProjectRepository}
+     */
+    getProjectRepository() {
+        if (this.projectRepository == null) {
+            this.projectRepository = new ProjectRepository();
+        }
+        return this.projectRepository;
     }
 
     validateSession() {

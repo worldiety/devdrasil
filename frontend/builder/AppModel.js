@@ -3,13 +3,14 @@ export {
     SourceCode,
     Variable,
     Type,
-    TYPES,
+    TYPE,
     Field,
     Module,
-    PLATFORMS,
+    PLATFORM,
     App,
     Class,
-    TYPE_FACTORIES
+    STEREOTYPE,
+    TYPE_FACTORY
 }
 
 
@@ -240,11 +241,11 @@ class App extends Module {
         let res = [];
 
 
-        for (let key in TYPES) {
-            if (!includeVoid && TYPES[key].fullQualifiedName === TYPES.Void.fullQualifiedName) {
+        for (let key in TYPE) {
+            if (!includeVoid && TYPE[key].fullQualifiedName === TYPE.Void.fullQualifiedName) {
                 continue;
             }
-            res.push(TYPES[key]);
+            res.push(TYPE[key]);
         }
 
         this.forEachClass(cl => res.push(cl.asType()));
@@ -252,19 +253,19 @@ class App extends Module {
         let tmp = [...res];
         if (includeLists) {
             for (let type of tmp) {
-                if (type.id === TYPES.Void.fullQualifiedName) {
+                if (type.id === TYPE.Void.fullQualifiedName) {
                     continue;
                 }
-                res.push(TYPE_FACTORIES.NewList(type));
+                res.push(TYPE_FACTORY.NewList(type));
             }
         }
 
         if (includeMap) {
             for (let type of tmp) {
-                if (type.id === TYPES.Void.fullQualifiedName) {
+                if (type.id === TYPE.Void.fullQualifiedName) {
                     continue;
                 }
-                res.push(TYPE_FACTORIES.NewMap(TYPES.String, type));
+                res.push(TYPE_FACTORY.NewMap(TYPE.String, type));
             }
         }
 
@@ -296,7 +297,7 @@ class App extends Module {
      * @param {Type} type
      */
     isBuildInType(type) {
-        for (let bin of TYPES) {
+        for (let bin of TYPE) {
             if (type.fullQualifiedName === bin.id) {
                 return true;
             }
@@ -352,6 +353,30 @@ class Class {
          * @type {Array<Method>}
          */
         this.methods = [];
+
+        /**
+         * A class should define stereotypes, so that it's role is always explicit and unambiguous.
+         * @type {Array<string>}
+         */
+        this.stereotypes = [];
+    }
+
+    /**
+     * checks if a stereotype has been assigned
+     * @param {string} stereotype
+     * @return {boolean}
+     */
+    hasStereotype(stereotype) {
+        return this.stereotypes.indexOf(stereotype) >= 0;
+    }
+
+    /**
+     * Adds the stereotype and removes all others
+     * @param {string} stereotype
+     */
+    setStereotype(stereotype) {
+        this.stereotypes = [];
+        this.stereotypes.push(stereotype);
     }
 
     /**
@@ -371,6 +396,7 @@ class Class {
         for (let m of this.methods) {
             obj["methods"].push(m.toObject());
         }
+        obj["stereotypes"] = this.stereotypes;
         return obj;
     }
 
@@ -397,6 +423,7 @@ class Class {
             meth.parent = this;
             this.methods.push(meth);
         }
+        this.stereotypes = obj["stereotypes"]
     }
 
 
@@ -408,7 +435,10 @@ class Class {
         let fullQualifiedName = this.name;
         let root = this.parent;
         while (root != null) {
-            fullQualifiedName = root.name + "." + fullQualifiedName;
+            if (root.name.length > 0) {
+                fullQualifiedName = root.name + "." + fullQualifiedName;
+            }
+            root = root.parent;
         }
         return new Type(fullQualifiedName);
     }
@@ -418,7 +448,7 @@ class Class {
  * The base types, which are always available. Map and List should only occur as concrete instances. Do not modify them.
  * @type {{Void: Type, String: Type, Int64: Type, Float64: Type, Bool: Type, List: Type, Map: Type}}
  */
-const TYPES = {
+const TYPE = {
     Void: new Type("void"),
     String: new Type("string"),
     Int64: new Type("int64"),
@@ -428,7 +458,7 @@ const TYPES = {
     Map: new Type("Map"),
 };
 
-const TYPE_FACTORIES = {
+const TYPE_FACTORY = {
     /**
      * Creates a new list type
      * @param type
@@ -661,7 +691,7 @@ class Method {
  *
  * @type {{GO_1_x: string, ES6: string}}
  */
-const PLATFORMS = {
+const PLATFORM = {
     /**
      * Go 1.x with gc. At least go 1.11 is required.
      */
@@ -673,13 +703,66 @@ const PLATFORMS = {
     ES6: "ES6"
 };
 
+const STEREOTYPE = {
+    /**
+     * Frontend: Represents a view, e.g. like a form. It is the smallest and most reusable unit in the frontend.
+     * It's lifecycle is usually at most to the lifecycle of a {@link STEREOTYPE.USER_INTERFACE_STATE}
+     */
+    VIEW: "VIEW",
+    /**
+     * Backend: Represents a controller, which is a singleton. It incorporates the actual server side application logic.
+     */
+    CONTROLLER: "CONTROLLER",
+    /**
+     * Frontend: In the MVVM world, this is the ViewModel and provides a (potential) two way binding to a {@link STEREOTYPE.VIEW}.
+     * On the other hand, it just may be a simple controller which is used directly (MVC world). In both cases it is a singleton
+     * at application level.
+     */
+    VIEW_CONTROLLER: "VIEW_CONTROLLER",
+
+    /**
+     * Frontend: Represents a logical state which allows a forward/backward navigation. It uses typically {@link STEREOTYPE.VIEW}s and applies them.
+     * It provides a basic create/destroy lifecycle and provides the infrastructure for MVVM or other callback bindings to resolve leaks reliable.
+     */
+    USER_INTERFACE_STATE: "USER_INTERFACE_STATE",
+
+    /**
+     * Frontend & Backend: Represents a model which is persistent and supports CRUD (create read update delete). Each model
+     * is made available by a repository. The backend holds the actual truth, whereas the frontend repository just
+     * represents the client's end, perhaps providing additional caching purposes. A {@link STEREOTYPE.VIEW_CONTROLLER} typically imports
+     * a repository to make data available to the view.
+     */
+    PERSISTENCE_MODEL: "PERSISTENCE_MODEL",
+
+    /**
+     *Frontend & Backend: An abstract component, which encapsulates a model with optional methods. It can be used to either
+     * represent common intermediate models (without persistence) or separation of concerns (e.g. splitted controller logic).
+     * It is shared across the frontend and backend. See also {@link STEREOTYPE.FRONTEND_COMPONENT} and {@link STEREOTYPE.BACKEND_COMPONENT}.
+     */
+    COMPONENT: "COMPONENT",
+
+    /**
+     * Frontend: a component which is only applicable to the frontend. See also {@link STEREOTYPE.COMPONENT}.
+     */
+    FRONTEND_COMPONENT: "FRONTEND_COMPONENT",
+
+    /**
+     * Backend: a component which is only applicable to the backend. See also {@link STEREOTYPE.COMPONENT}.
+     */
+    BACKEND_COMPONENT: "BACKEND_COMPONENT",
+
+    VALUES: function () {
+        return [STEREOTYPE.VIEW, STEREOTYPE.CONTROLLER]
+    }
+};
+
 /**
  * One can attach a concrete hand written source code at multiple places, e.g. on {@link Method}s
  */
 class SourceCode {
     constructor(platform = "", code = "") {
         /**
-         * A constant from {@link PLATFORMS}
+         * A constant from {@link PLATFORM}
          *
          * @type {string}
          */

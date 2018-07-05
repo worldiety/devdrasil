@@ -68,4 +68,6 @@
     <string name="builder_new_view">Neue View</string>
     <string name="builder_identifier">Bezeichner</string>
     <string name="builder_type">Typ</string>
+    <string name="builder_class">Klasse</string>
+    <string name="builder_stereotype">Stereotype</string>
 </resources>
