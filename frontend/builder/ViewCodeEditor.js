@@ -10,6 +10,8 @@ class ViewCodeEditor extends AbsComponent {
         this.loadPromise = new Promise(resolve => {
             this._asyncInitAceEditor(resolve);
         });
+
+
     }
 
     _asyncInitAceEditor(resolve) {
@@ -19,7 +21,7 @@ class ViewCodeEditor extends AbsComponent {
             this.editor.setTheme("ace/theme/xcode");
             this.editor.session.setMode("ace/mode/javascript");
 
-            this.getElement().style.height = "calc(100vh - 64px)";
+            this.getElement().style.height = "320px";
             this.getElement().style.margin = "0px";
 
             this._asyncInitAceBeautify(resolve);

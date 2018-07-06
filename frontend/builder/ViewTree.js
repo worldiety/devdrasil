@@ -147,13 +147,10 @@ class Toolbar extends Box {
         this.getElement().style.borderBottom = "#d0d0d0 solid 1px";
 
         let menu = new Menu();
-        menu.add(ctx.getString("builder_new_entity"), _ => {
-            new EntityModelCreator(ctx, observable).showNewDialog();
+        menu.add(ctx.getString("builder_new_class"), _ => {
+            new ClassCreator(ctx, observable).showNewDialog();
         });
 
-        menu.add(ctx.getString("builder_new_view"), _ => {
-            new ViewModelCreator(ctx, observable).showNewDialog();
-        });
 
         let btnAdd = new FlatButton();
         btnAdd.setIcon(new Icon("add"));
@@ -239,31 +236,20 @@ class NamedElementCreator {
 }
 
 
-class ViewModelCreator extends NamedElementCreator {
 
-    getPrefix() {
-        return "View";
-    }
-
-    addToModel(appModel, name) {
-        appModel.addClass(new Class(name));
-    }
-}
-
-class EntityModelCreator extends NamedElementCreator {
+class ClassCreator extends NamedElementCreator {
 
     getPrefix() {
         return "";
     }
 
     getEntityName() {
-        return "Entity";
+        return "Class";
     }
 
 
     addToModel(appModel, name) {
         let entity = new Class(name);
-        entity.fields.push(new Field("test", TYPE.String));
         appModel.addClass(entity);
     }
 }

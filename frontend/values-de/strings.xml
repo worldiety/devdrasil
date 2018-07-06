@@ -62,14 +62,17 @@
     <string name="builder_invalid_identifier">Der Bezeichner ist ungültig.</string>
     <string name="builder_identifier_prefix_x">Der Bezeichner muss mit "%s" anfangen.</string>
     <string name="builder_identifier_notunique">Der Bezeichner ist nicht eindeutig.</string>
-    <string name="builder_new_view">Neue View</string>
-    <string name="builder_new_entity">Neue Entität</string>
-    <string name="builder_new_view">Neue View</string>
+    <string name="builder_new_class">Neue Klasse</string>
+    <string name="builder_new_field">Neues Feld</string>
+    <string name="builder_new_method">Neue Methode</string>
     <string name="builder_identifier">Bezeichner</string>
     <string name="builder_type">Typ</string>
     <string name="builder_class">Klasse</string>
     <string name="builder_field">Feld</string>
+    <string name="builder_method">Methode</string>
     <string name="builder_stereotype">Stereotype</string>
     <string name="builder_undefined">undefiniert</string>
+    <string name="builder_new_method_parameter">Neuer Parameter</string>
+    <string name="builder_new_method_result">Neuer Rückgabewert</string>
     <string name="delete_x">Möchtest du '%s' wirklich löschen?</string>
 </resources>

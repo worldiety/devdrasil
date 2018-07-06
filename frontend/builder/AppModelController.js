@@ -23,7 +23,7 @@ class AppModelController extends Observable {
             if (val == null) {
                 return;
             }
-            projectRepository.putAsset(new Asset(id, path, val)).then(_ => {
+            projectRepository.putAsset(new Asset(id, path, val.toObject())).then(_ => {
                 console.log(`saved ${id}${path}`);
             }).catch(err => {
                 console.log(`failed to save ${id}${path}:${err}`);

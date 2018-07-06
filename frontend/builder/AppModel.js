@@ -240,6 +240,21 @@ class App extends Module {
         return false;
     }
 
+    /**
+     * Returns a platform for a stereotype
+     * @param stereotype on of {@link STEREOTYPE}
+     * @return {string} one of {@link PLATFORM}
+     */
+    getPlatformForStereotype(stereotype) {
+        switch (stereotype) {
+            case STEREOTYPE.PERSISTENCE_MODEL:
+                return PLATFORM.GO_1_x;
+            case STEREOTYPE.VIEW:
+                return PLATFORM.ES6;
+            default:
+                throw new Error("unsupported stereotype: " + stereotype);
+        }
+    }
 
     /**
      * Returns all available types, including the basic ones and all self defined.
@@ -282,6 +297,20 @@ class App extends Module {
 
 
         return res;
+    }
+
+    /**
+     * tries to find a type by it's string representation as returned by {@link Type.toString}.
+     * @param {string} typeName
+     * @return {Type|null}
+     */
+    findType(typeName) {
+        for (let type of this.getTypes(true, true, true)) {
+            if (type.toString() === typeName) {
+                return type;
+            }
+        }
+        return null;
     }
 
     /**
@@ -466,6 +495,85 @@ class Class {
         this.parent = null;
         return true;
     }
+
+    /**
+     * Adds the given field. If another field with that name already exists, the existing one is removed.
+     * @param {Field} field
+     */
+    addField(field) {
+        this.fields = this.fields.filter(value => value.name !== field.name);
+        this.fields.push(field);
+        field.parent = this;
+    }
+
+    /**
+     * Adds the given method. If another method with that name already exists, the existing one is removed.
+     * @param {Method} method
+     */
+    addMethod(method) {
+        this.methods = this.methods.filter(value => value.name !== method.name);
+        this.methods.push(method);
+        method.parent = this;
+    }
+
+
+    /**
+     * Finds a field by name.
+     * @param {string} name
+     * @return {Field|null}
+     */
+    findField(name) {
+        for (let field of this.fields) {
+            if (field.name === name) {
+                return field;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Finds a method by name.
+     * @param {string} name
+     * @return {Method|null}
+     */
+    findMethod(name) {
+        for (let method of this.methods) {
+            if (method.name === name) {
+                return method;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Generates a new unique field name
+     * @return {string}
+     */
+    generateFieldName() {
+        const base = "myField";
+        let name = base;
+        let counter = 2;
+        while (this.findField(name) != null) {
+            name = base + counter;
+            counter++;
+        }
+        return name;
+    }
+
+    /**
+     * Generates a new unique method name
+     * @return {string}
+     */
+    generateMethodName() {
+        const base = "myMethod";
+        let name = base;
+        let counter = 2;
+        while (this.findMethod(name) != null) {
+            name = base + counter;
+            counter++;
+        }
+        return name;
+    }
 }
 
 /**
@@ -581,6 +689,16 @@ class Variable {
             this.type.fromObject(obj["type"]);
         }
     }
+
+    remove() {
+        if (this.parent instanceof Method) {
+            this.parent.parameters = this.parent.parameters.filter(value => value !== this);
+            this.parent.returns = this.parent.returns.filter(value => value !== this);
+            return true;
+        } else {
+            return false;
+        }
+    }
 }
 
 /**
@@ -649,7 +767,9 @@ class Method {
 
         /**
          * Part of the signature. A method may return multiple result types. The actual capabilities depend on the concrete source implementation.
-         * @type {Array<Type>}
+         * There languages which support such declarations like go and swift, but others do not even support tuples, like java.
+         * In those cases the generator inserts local variables and a generated tuple holder which has to be returned.
+         * @type {Array<Variable>}
          */
         this.returns = [];
 
@@ -678,8 +798,8 @@ class Method {
             obj["parameters"].push(p.toObject());
         }
         obj["returns"] = [];
-        for (let r of this.returns) {
-            obj["returns"].push(r.toObject());
+        for (let p of this.returns) {
+            obj["returns"].push(p.toObject());
         }
         obj["implementations"] = [];
         for (let i of this.implementations) {
@@ -693,6 +813,7 @@ class Method {
      * @param {Object} obj
      */
     fromObject(obj) {
+        this.name = obj["name"];
         this.code = obj["code"];
         this.platform = obj["platform"];
         this.parameters = [];
@@ -707,9 +828,10 @@ class Method {
         }
 
         for (let o of obj["returns"]) {
-            let t = new Type();
-            t.fromObject(o);
-            this.returns.push(t);
+            let p = new Variable();
+            p.fromObject(o);
+            p.parent = this;
+            this.returns.push(p);
         }
 
         for (let o of obj["implementations"]) {
@@ -718,6 +840,122 @@ class Method {
             s.parent = this;
             this.implementations.push(s);
         }
+    }
+
+
+    /**
+     * Removes this method from it's parent
+     * @return {boolean}, true if successful
+     */
+    remove() {
+        if (this.parent == null) {
+            return false;
+        }
+        this.parent.methods = this.parent.methods.filter(value => value !== this);
+        this.parent = null;
+        return true;
+    }
+
+    /**
+     * Adds the given parameter. If another parameter with that name already exists, the existing one is removed.
+     * @param {Variable} p
+     */
+    addParameter(p) {
+        this.parameters = this.parameters.filter(value => value.name !== p.name);
+        this.parameters.push(p);
+        p.parent = this;
+    }
+
+    /**
+     * Finds a parameter by name.
+     * @param {string} name
+     * @return {Variable|null}
+     */
+    findParameter(name) {
+        for (let p of this.parameters) {
+            if (p.name === name) {
+                return p;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Generates a new unique parameter name
+     * @return {string}
+     */
+    generateParameterName() {
+        const base = "myParameter";
+        let name = base;
+        let counter = 2;
+        while (this.findParameter(name) != null) {
+            name = base + counter;
+            counter++;
+        }
+        return name;
+    }
+
+
+    /**
+     * Adds the given return parameter. If another return parameter with that name already exists, the existing one is removed.
+     * @param {Variable} p
+     */
+    addReturn(p) {
+        this.returns = this.returns.filter(value => value.name !== p.name);
+        this.returns.push(p);
+        p.parent = this;
+    }
+
+    /**
+     * Finds a result by name.
+     * @param {string} name
+     * @return {Variable|null}
+     */
+    findReturn(name) {
+        for (let p of this.returns) {
+            if (p.name === name) {
+                return p;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Generates a new unique out name
+     * @return {string}
+     */
+    generateReturnName() {
+        const base = "out";
+        let name = base;
+        let counter = 2;
+        while (this.findReturn(name) != null) {
+            name = base + counter;
+            counter++;
+        }
+        return name;
+    }
+
+    /**
+     * finds an implementation
+     * @param platform
+     * @return {SourceCode|null}
+     */
+    findImplementation(platform) {
+        for (let src of this.implementations) {
+            if (src.platform === platform) {
+                return src;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Inserts or updates an implementation for the defined platform
+     * @param sourceCode
+     */
+    putImplementation(sourceCode) {
+        this.implementations = this.implementations.filter(value => value.platform !== sourceCode.platform);
+        this.implementations.push(sourceCode);
     }
 }
 
@@ -740,6 +978,12 @@ const PLATFORM = {
     ES6: "ES6"
 };
 
+/**
+ * A stereotype defines the role a class takes in an application. It directly influences the source code generator and the platform to use, e.g. for backend and frontend.
+ * It also influences lifecycle and injection capabilities.
+ *
+ * @type {{VIEW: string, CONTROLLER: string, VIEW_CONTROLLER: string, USER_INTERFACE_STATE: string, PERSISTENCE_MODEL: string, COMPONENT: string, FRONTEND_COMPONENT: string, BACKEND_COMPONENT: string, VALUES: (function(): *[])}}
+ */
 const STEREOTYPE = {
     /**
      * Frontend: Represents a view, e.g. like a form. It is the smallest and most reusable unit in the frontend.
@@ -789,7 +1033,7 @@ const STEREOTYPE = {
     BACKEND_COMPONENT: "BACKEND_COMPONENT",
 
     VALUES: function () {
-        return [STEREOTYPE.VIEW, STEREOTYPE.CONTROLLER]
+        return [STEREOTYPE.VIEW, STEREOTYPE.CONTROLLER, STEREOTYPE.VIEW_CONTROLLER, STEREOTYPE.USER_INTERFACE_STATE, STEREOTYPE.PERSISTENCE_MODEL, STEREOTYPE.COMPONENT, STEREOTYPE.FRONTEND_COMPONENT, STEREOTYPE.BACKEND_COMPONENT]
     }
 };
 

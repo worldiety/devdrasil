@@ -95,6 +95,7 @@ class ViewEditorBox extends Box {
         this.getElement().style.height = "calc(100vh - 64px)";
         this.getElement().style.backgroundColor = "white";
         this.getElement().style.borderLeft = "#d0d0d0 solid 1px";
+        this.getElement().style.overflowY = "scroll";
     }
 }
 
@@ -103,6 +104,7 @@ class ViewLeftEditorBox extends Box {
         super();
         this.getElement().style.height = "calc(100vh - 64px)";
         this.getElement().style.backgroundColor = "white";
+
     }
 }
 
