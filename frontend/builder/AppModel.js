@@ -631,6 +631,10 @@ function getRootModule(module) {
     return root;
 }
 
+/**
+ * A variable is a named storage location containing a data, usually a reference or a pointer to data but for
+ * some primitives it may represent the value itself. This is the base type for Parameter and fields.
+ */
 class Variable {
     /**
      *
